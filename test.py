@@ -11,7 +11,7 @@ adatokSzama = 379
 
 def Beolvas(filename: str, evek: int):
     global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok, adatokSzama
-    kezdosor =  adatokSzama - (12*evek)-1
+    kezdosor =  int(adatokSzama - (12*evek)-1)
     data = pd.read_excel(filename, sheet_name='data')
     mnk_rata_cv = data['mnk_rata_cv'].tolist()[kezdosor:]
     mnk_rata_hr = data['mnk_rata_hr'].tolist()[kezdosor:]
@@ -91,7 +91,7 @@ def GetStatisztika(statisztikak, megye, adat_neve):
     return None
 
 adatokSzama = 379 
-evek = 1
+evek = 30
 Beolvas(filename, evek)                               # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
@@ -100,4 +100,4 @@ statisztikak = Statisztikak(megyek, adatok)
 cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
 print("Kovászna átlaga: ", cvAtlag)
-AbrazolEgyben(adatok, idoszakok, megyek, 1, evek)
+AbrazolEgyben(adatok, idoszakok, megyek, 12, evek)
