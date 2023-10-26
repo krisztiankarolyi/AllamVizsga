@@ -4,16 +4,18 @@ import pandas as pd
 import statistics as st
 
 
-filename = "C:/Users/Károlyi Krisztián/Desktop/SAPI_3-1/Szakdoga/data.xlsx"
+filename = "C:/Users/Károlyi Krisztián/Desktop\SAPI_3-1/AllamVizsga/data.xlsx"
 mnk_rata_cv = []; mnk_rata_hr = []; mnk_rata_ms = []; idoszakok  = []
+adatokSzama = 379 
 
-def Beolvas(filename):
-    global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok
+def Beolvas(filename: str, evek: int):
+    global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok, adatokSzama
+    kezdosor =  adatokSzama - 12*evek
     data = pd.read_excel(filename, sheet_name='data')
-    mnk_rata_cv = data['mnk_rata_cv'].tolist()
-    mnk_rata_hr = data['mnk_rata_hr'].tolist()
-    mnk_rata_ms = data['mnk_rata_ms'].tolist()
-    idoszakok = data['idoszak'].tolist()
+    mnk_rata_cv = data['mnk_rata_cv'].tolist()[kezdosor:]
+    mnk_rata_hr = data['mnk_rata_hr'].tolist()[kezdosor:]
+    mnk_rata_ms = data['mnk_rata_ms'].tolist()[kezdosor:]
+    idoszakok = data['idoszak'].tolist()[kezdosor:]
 
 def Kiir(megyek: list, adatok: list, idoszakok: list):
     print("Adatok (mért hónapok) száma : "+str(len(idoszakok)))
@@ -37,7 +39,7 @@ def AbrazolKulon(adatok: list, idoszakok: list, megye: str):
     plt.legend()  
     plt.show()
 
-def AbrazolEgyben(adatok: list, idoszakok: list, megyek: list):
+def AbrazolEgyben(adatok: list, idoszakok: list, megyek: list, suruseg):
     plt.figure(figsize=(15, 7))
     for i, megye in enumerate(megyek):
         plt.plot(idoszakok, adatok[i], label=megye)
@@ -45,7 +47,7 @@ def AbrazolEgyben(adatok: list, idoszakok: list, megyek: list):
     plt.ylabel('Munkanélküliségi ráta (%)')
     plt.title("Székelyföldi megyék Munkanélküliségi rátái 1992 január - 2023 július")
     plt.grid(True)
-    plt.xticks(idoszakok[::12], rotation=90, fontsize=8)
+    plt.xticks(idoszakok[::suruseg], rotation=90, fontsize=8)
     plt.legend()
     plt.show()
 
@@ -82,13 +84,13 @@ def GetStatisztika(statisztikak, megye, adat_neve):
             return stat[adat_neve]
     return None  
 
-
-Beolvas(filename)
+adatokSzama = 379 
+Beolvas(filename, 13)  # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
 #Kiir(megyek, adatok, idoszakok)
 statisztikak = Statisztikak(megyek, adatok)
-#ShowStatisztikak(statisztikak)
-#AbrazolEgyben(adatok, idoszakok, megyek)
-kovaszna_atlag = GetStatisztika(statisztikak, "CV", "átlag")
-print("Kovászna átlaga: ", kovaszna_atlag)
+ShowStatisztikak(statisztikak)
+AbrazolEgyben(adatok, idoszakok, megyek, 3)
+
+print("Kovászna átlaga: ", GetStatisztika(statisztikak, "CV", "átlag"))

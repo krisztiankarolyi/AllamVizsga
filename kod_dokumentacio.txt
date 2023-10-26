@@ -1,8 +1,10 @@
 
-Beolvas:
+Beolvas(filename, evek):	
+    az evek azt jelenti, hogy megadjuk neki, hogy hány évre visszamenőleg kezdjük beolvasni az adatokat, tehát jó, ha legalább 12 megfigyelésünk van. 
     Ez nem teljesen automatikus, hanem a program legelején elején meg kell adjuk a kezdeti globális listákat, 
     ezekbe fogja betölteni a megadott Excel fájlból az adatokat a megfelelő szlopokból a panda modul. 
     Az idoszakok fontos, hogy meglegyenek, mert ezzel generálja a program az X tengely feliratait. 
+    Meg kell adni a program elején, hogy hány db megfigyelésünk van, ezzel fogja kiszámolni azt, hogy melyik sortól kezdődően kell eltárolja az Excel oszlopokból az adatokat a listába.
 
 Kiir():
     ez csak a tesztelésre lett írva, de meghagytam. A megadott megyék adatlistájáit egybe tudjuk beküldeni egy listában, 
@@ -28,6 +30,7 @@ ShowStatisztikak(statisztikak):
     A függvény végigmegy a listán, majd minden megye esetében kiírja a megye nevét, és az átlagot, szórást, varianciát, median-t, minimumot és maximumot két tizedesjegyig kerekítve.
 
 AbrazolEgyben:
+    a suruseg-gel megadhatjuk, hogy az x tengely milyen sűrűn írja az időszakokat
     plt.figure(figsize=(15, 7)): Ezzel létrehozunk egy új ábrát (diagramot) a matplotlib könyvtár segítségével. A figsize argumentum beállítja az ábra méretét (15 szélesség és 7 magasság egységekben).
     for i, megye in enumerate(megyek): Egy for ciklus, amely végigiterál a megyek listán. 
     A enumerate segítségével a ciklus indexét is nyerjük, amelyet az i változó tárol.
@@ -36,7 +39,7 @@ AbrazolEgyben:
     Az idoszakok az x-tengely értékeit tartalmazza (időszakok), az adatok[i] pedig az adott megyére vonatkozó munkanélküliségi ráta értékeinek listáját. 
     A label argumentum beállítja a diagramon látható vonal elnevezését, ami a megye változót tartalmazza (az aktuális megye neve).
     plt.grid(True): Engedélyezi a rácsozatot a diagramon, ami segít az értékek könnyebb leolvasásában.
-    plt.xticks(): Beállítja az x-tengelyen megjelenő címkéket. Az idoszakok[::12] azt jelenti, hogy minden 12. elemet veszi az idoszakok listából, ami általában egy év. Az rotation beállítja a címkék szövegének elforgatását 90 fokkal, hogy elférjenek. A fontsize pedig a címkék betűméretét állítja be.
+    plt.xticks(): Beállítja az x-tengelyen megjelenő címkéket.Az rotation beállítja a címkék szövegének elforgatását 90 fokkal, hogy elférjenek. A fontsize pedig a címkék betűméretét állítja be.
     plt.legend(): Megjeleníti a vonalakhoz tartozó feliratokat a diagramon. plt.show(): Megjeleníti az ábrát a képernyőn.
     Ez a kód egyszerre jelenít meg több vonaldiagramot a különböző megyék munkanélküliségi rátáinak alakulásáról az időben.
 
