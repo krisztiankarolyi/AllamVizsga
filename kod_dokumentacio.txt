@@ -1,11 +1,12 @@
 
 Beolvas(filename, evek):	
     az evek azt jelenti, hogy megadjuk neki, hogy hány évre visszamenőleg kezdjük beolvasni az adatokat, tehát jó, ha legalább 12 megfigyelésünk van. 
+    (Nem a legelső, hanem a kiszámolt hónaptól kezdődően veszi figyelembe az adatsort, tehát a megfogyelések excel táblája sorrendbe kell legyen).
     Ez nem teljesen automatikus, hanem a program legelején elején meg kell adjuk a kezdeti globális listákat, 
     ezekbe fogja betölteni a megadott Excel fájlból az adatokat a megfelelő szlopokból a panda modul. 
     Az idoszakok fontos, hogy meglegyenek, mert ezzel generálja a program az X tengely feliratait. 
     Meg kell adni a program elején, hogy hány db megfigyelésünk van, ezzel fogja kiszámolni azt, hogy melyik sortól kezdődően kell eltárolja az Excel oszlopokból az adatokat a listába.
-
+	
 Kiir():
     ez csak a tesztelésre lett írva, de meghagytam. A megadott megyék adatlistájáit egybe tudjuk beküldeni egy listában, 
     és egy másik lista pedig abban segít, hogy azonosítsa az adatok listában levő adatsorok megyéit.

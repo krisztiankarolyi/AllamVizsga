@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -79,18 +80,19 @@ def ShowStatisztikak(statisztikak: list):
 
 def GetStatisztika(statisztikak, megye, adat_neve):
     for megye_stat in statisztikak:
-        megye_nev, stat = megye_stat.popitem()
+        megye_stat_copy = copy.deepcopy(megye_stat)  # Create a deep copy of the dictionary
+        megye_nev, stat = megye_stat_copy.popitem()
         if megye_nev == megye and adat_neve in stat:
             return stat[adat_neve]
-    return None  
+    return None
 
 adatokSzama = 379 
-Beolvas(filename, 13)  # hány évre visszamenőleg kezdje el beolvasni
+Beolvas(filename, 5)  # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
-#Kiir(megyek, adatok, idoszakok)
+Kiir(megyek, adatok, idoszakok)
 statisztikak = Statisztikak(megyek, adatok)
+cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
-AbrazolEgyben(adatok, idoszakok, megyek, 3)
-
-print("Kovászna átlaga: ", GetStatisztika(statisztikak, "CV", "átlag"))
+print("Kovászna átlaga: ", cvAtlag)
+#AbrazolEgyben(adatok, idoszakok, megyek, 1)
