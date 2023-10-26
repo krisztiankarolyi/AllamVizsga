@@ -11,7 +11,7 @@ adatokSzama = 379
 
 def Beolvas(filename: str, evek: int):
     global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok, adatokSzama
-    kezdosor =  adatokSzama - 12*evek
+    kezdosor =  adatokSzama - (12*evek)-1
     data = pd.read_excel(filename, sheet_name='data')
     mnk_rata_cv = data['mnk_rata_cv'].tolist()[kezdosor:]
     mnk_rata_hr = data['mnk_rata_hr'].tolist()[kezdosor:]
@@ -40,13 +40,17 @@ def AbrazolKulon(adatok: list, idoszakok: list, megye: str):
     plt.legend()  
     plt.show()
 
-def AbrazolEgyben(adatok: list, idoszakok: list, megyek: list, suruseg):
+def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, evek):
+    utolso_ev_ho = idoszakok[-1]  # Az utolsó év és hónap meghatározása
+    elso_ev_ho = idoszakok[0]
+    
     plt.figure(figsize=(15, 7))
     for i, megye in enumerate(megyek):
         plt.plot(idoszakok, adatok[i], label=megye)
+
     plt.xlabel('Időszak')
     plt.ylabel('Munkanélküliségi ráta (%)')
-    plt.title("Székelyföldi megyék Munkanélküliségi rátái 1992 január - 2023 július")
+    plt.title(f"Székelyföldi megyék Munkanélküliségi rátái {elso_ev_ho} - {utolso_ev_ho} között")
     plt.grid(True)
     plt.xticks(idoszakok[::suruseg], rotation=90, fontsize=8)
     plt.legend()
@@ -87,7 +91,8 @@ def GetStatisztika(statisztikak, megye, adat_neve):
     return None
 
 adatokSzama = 379 
-Beolvas(filename, 5)  # hány évre visszamenőleg kezdje el beolvasni
+evek = 1
+Beolvas(filename, evek)                               # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
 Kiir(megyek, adatok, idoszakok)
@@ -95,4 +100,4 @@ statisztikak = Statisztikak(megyek, adatok)
 cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
 print("Kovászna átlaga: ", cvAtlag)
-#AbrazolEgyben(adatok, idoszakok, megyek, 1)
+AbrazolEgyben(adatok, idoszakok, megyek, 1, evek)
