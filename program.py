@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import statistics as st
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 
 filename = "C:/Users/Károlyi Krisztián/Desktop\SAPI_3-1/AllamVizsga/data.xlsx"
@@ -90,8 +91,17 @@ def GetStatisztika(statisztikak, megye, adat_neve):
             return stat[adat_neve]
     return None
 
+
+# Autokorrelációs és parciális autokorrelációs tesztek
+def plot_acf_and_pacf(data, megye_nev):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6))
+    plot_acf(data, lags=40, ax=ax1, title=f"Autokorreláció ({megye_nev})")
+    plot_pacf(data, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({megye_nev})")
+
+
 adatokSzama = 379 
-evek = 30
+evek = int(input("Hány évre visszamenőleg dolgozzam fel az adatsort?"))
+suruseg = int(input("Milyen sűrűséggel legyen az X tengely?"))
 Beolvas(filename, evek)                               # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
@@ -100,4 +110,11 @@ statisztikak = Statisztikak(megyek, adatok)
 cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
 print("Kovászna átlaga: ", cvAtlag)
-AbrazolEgyben(adatok, idoszakok, megyek, 12, evek)
+AbrazolEgyben(adatok, idoszakok, megyek, suruseg, evek)
+
+# Autokorrelációs és parciális autokorrelációs tesztek
+for i, megye in enumerate(megyek):
+    plot_acf_and_pacf(adatok[i], megye)
+
+plt.tight_layout()
+plt.show()
