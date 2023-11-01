@@ -8,7 +8,7 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 filename = "C:/Users/Károlyi Krisztián/Desktop\SAPI_3-1/AllamVizsga/data.xlsx"
 mnk_rata_cv = []; mnk_rata_hr = []; mnk_rata_ms = []; idoszakok  = []
-adatokSzama = 379 
+adatokSzama = int(input("Hány db megfigyelés van az adatsorban összesen?"))
 
 def Beolvas(filename: str, evek: int):
     global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok, adatokSzama
@@ -41,7 +41,7 @@ def AbrazolKulon(adatok: list, idoszakok: list, megye: str):
     plt.legend()  
     plt.show()
 
-def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, evek):
+def AbrazolEgyben(adatok, idoszakok, megyek, suruseg):
     utolso_ev_ho = idoszakok[-1]  # Az utolsó év és hónap meghatározása
     elso_ev_ho = idoszakok[0]
     
@@ -110,7 +110,7 @@ statisztikak = Statisztikak(megyek, adatok)
 cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
 print("Kovászna átlaga: ", cvAtlag)
-AbrazolEgyben(adatok, idoszakok, megyek, suruseg, evek)
+AbrazolEgyben(adatok, idoszakok, megyek, suruseg)
 
 # Autokorrelációs és parciális autokorrelációs tesztek
 for i, megye in enumerate(megyek):
@@ -118,3 +118,4 @@ for i, megye in enumerate(megyek):
 
 plt.tight_layout()
 plt.show()
+
