@@ -102,15 +102,16 @@ def plot_acf_and_pacf(data, megye_nev):
 adatokSzama = 379 
 evek = int(input("Hány évre visszamenőleg dolgozzam fel az adatsort?"))
 suruseg = int(input("Milyen sűrűséggel legyen az X tengely?"))
-Beolvas(filename, evek)                               # hány évre visszamenőleg kezdje el beolvasni
-adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms] #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
-megyek = ["CV", "HR", "MS"]                      #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
+Beolvas(filename, evek)                             # hány évre visszamenőleg kezdje el beolvasni
+adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms]    #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
+megyek = ["CV", "HR", "MS"]                         #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
+AbrazolEgyben(adatok, idoszakok, megyek, suruseg)
+                     
 Kiir(megyek, adatok, idoszakok)
 statisztikak = Statisztikak(megyek, adatok)
 cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
 ShowStatisztikak(statisztikak)
 print("Kovászna átlaga: ", cvAtlag)
-AbrazolEgyben(adatok, idoszakok, megyek, suruseg)
 
 # Autokorrelációs és parciális autokorrelációs tesztek
 for i, megye in enumerate(megyek):
