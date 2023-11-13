@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <title>Adatok Megjelenítése</title>
+</head>
+
+<body class="has-background-dark has-text-light" style=" min-height: 100vh;">
+    <a href="{% url 'home' %}">Vissza a beállításokhoz</a>
+    <section class="section has-background-dark has-text-light" style=" max-width: 1000px; margin: auto;">
+        <h1 class="title has-text-white has-text-centered">Beolvasott Adatok</h1>
+        <div class="container has-background-dark has-text-light" style="max-height: 50vh; min-height: 50vh; overflow-y: scroll; min-width: 100%;">
+            <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
+
+                <tbody>
+                    <tr>
+                        <th class="has-background-grey-dark has-text-light">dátum</th>
+                        {% for nev in adatsorNevek %}
+                            <th class="has-background-grey-dark has-text-light">{{nev}}</th>
+                        {% endfor %}
+                    </tr>
+                    {% for data_row in data_rows %}
+                    <tr>
+                        <td>{{ data_row.idoPont }}</td>
+                        {% for adatsor in data_row.adatsorok %}
+                        <td>{{ adatsor }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}           
+            </div>
+            </table>
+        </div>
+        <hr>
+        <h2 class="subtitle has-text-white has-text-centered">Diagram</h2>
+        <hr>
+        <div id="diagram" class="has-text-centered">
+            <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;"></a>
+        </div>
+        <hr>
+        <h2 class="subtitle has-text-white has-text-centered">Statisztikai mutatók</h2>
+        <hr>
+        <div class="table-container  is-fullwidth">
+            <table class="table is-bordered is-fullwidth" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th  class="has-background-info has-text-light"></th>
+                        {% for stat in statisztikak %}
+                            <th  class="has-background-info has-text-light" >{{ stat.megye_nev }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Átlag</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.atlag }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td >Szórás</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.szoras }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Variancia</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.variancia }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Medián</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.median }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Minimum</td>
+                        {% for stat in statisztikak %}
+                        <td> 
+                            <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.min}}%</i>  
+                                <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.minDatum}}</i>
+                            </div>                    
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Maximum</td>
+                        {% for stat in statisztikak %}
+                        <td> 
+                            <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.max}}%</i>  
+                                <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.maxDatum}}</i>
+                            </div>                    
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+            <hr>
+            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs Függvény teszt(ACF)</h1> <hr>
+            <p class="has-text-justified">
+             Az ACF egy statisztikai függvény, amely megmutatja az adott idősor önmagával való autokorrelációját a különböző időlépések esetén. Az ACF egy olyan eszköz, amely segít megállapítani, hogy milyen mértékben korrelál egy adott időpontban lévő érték az előző időpontok értékeivel. Az ACF függvény ábrázolása során az első autokorrelációs érték mindig 1, mivel egy időpont önmagával maximálisan korrelál.
+            </p>
+            <p class="has-text-justified">
+                A PACF egy speciális autokorrelációs függvény, amely azt mutatja meg, hogy egy adott időpontban lévő érték milyen mértékben korrelál az előző időpontok értékeivel, miközben eltávolítja az előző időpontok közötti közvetlen hatásokat. A PACF hasznos az autoregresszív modellek (AR) paramétereinek becslésében.
+            </p> <br>
+            {% for diagram in acfpacf %}
+                <div id="acfpacf" class="has-text-centered">
+                    <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="ACF és PACF teszt" style=" height: 30%;"></a>
+                </div>
+            {% endfor %}
+                 
+        </div>
+    </section><hr>
+
+    <section style="max-width: 800px; margin: auto;">
+        <h1 class="title has-text-centered has-text-light">
+            előrejelzés (hamarosan)
+        </h1>
+        <hr>
+        <form action="">
+             <label for="p">p paraméter értéke (ha kell)</label>
+             <input class="input" type="number" value="1" min="1" required name="p" id="p">
+             <label for="p">q paraméter értéke (ha kell)</label>
+             <input class="input" type="number" value="1" min="1" required name="q" id="q">
+             
+             <label for="ar">AR</label>
+            <input type="checkbox" name="ar" id="ar" value="1">
+            
+            <label for="ma">MA</label>
+            <input type="checkbox" name="ma" id="ma" value="1">
+            
+            <label for="arma">ARMA</label>
+            <input type="checkbox" name="arma" id="arma" value="1">
+                <br>
+            <input type="submit" class="button is-info" value="Tesztek futtatása">
+        </form>
+    </section>
+
+</body>
+</html>
