@@ -122,20 +122,27 @@
             előrejelzés (hamarosan)
         </h1>
         <hr>
-        <form action="">
+        <form action="{% url 'arima' %}" method="POST">
+            {% csrf_token %}
              <label for="p">p paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="1" required name="p" id="p">
+             <input class="input" type="number" value="1" min="0" required name="p" id="p">
+             <label for="d">d paraméter értéke (ha kell)</label>
+             <input class="input" type="number" value="1" min="0" required name="d" id="d">
              <label for="p">q paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="1" required name="q" id="q">
-             
-             <label for="ar">AR</label>
-            <input type="checkbox" name="ar" id="ar" value="1">
+             <input class="input" type="number" value="1" min="0" required name="q" id="q">
+
+
+            <label for="ar">AR(p)</label>
+            <input type="checkbox" name="teszt" id="ar" value="ar">
             
-            <label for="ma">MA</label>
-            <input type="checkbox" name="ma" id="ma" value="1">
+            <label for="ma">MA(q)</label>
+            <input type="checkbox" name="teszt" id="ma" value="ma">
             
-            <label for="arma">ARMA</label>
-            <input type="checkbox" name="arma" id="arma" value="1">
+            <label for="arma">ARMA(p, q)</label>
+            <input type="checkbox" name="teszt" id="arma" value="arma">
+
+            <label for="arima">ARIMA(p,d, q)</label>
+            <input type="checkbox" name="teszt" id="arima" value="arima">
                 <br>
             <input type="submit" class="button is-info" value="Tesztek futtatása">
         </form>
