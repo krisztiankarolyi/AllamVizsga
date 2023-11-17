@@ -4,20 +4,19 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import statistics as st
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import statsmodels.api as sm
 
 
 filename = "C:/Users/Károlyi Krisztián/Desktop\SAPI_3-1/AllamVizsga/data.xlsx"
 mnk_rata_cv = []; mnk_rata_hr = []; mnk_rata_ms = []; idoszakok  = []
-adatokSzama = int(input("Hány db megfigyelés van az adatsorban összesen?"))
 
-def Beolvas(filename: str, evek: int):
+def Beolvas(filename: str):
     global mnk_rata_cv, mnk_rata_hr, mnk_rata_ms, idoszakok, adatokSzama
-    kezdosor =  int(adatokSzama - (12*evek)-1)
     data = pd.read_excel(filename, sheet_name='data')
-    mnk_rata_cv = data['mnk_rata_cv'].tolist()[kezdosor:]
-    mnk_rata_hr = data['mnk_rata_hr'].tolist()[kezdosor:]
-    mnk_rata_ms = data['mnk_rata_ms'].tolist()[kezdosor:]
-    idoszakok = data['idoszak'].tolist()[kezdosor:]
+    mnk_rata_cv = data['Kovászna'].tolist()
+    mnk_rata_hr = data['Hargita'].tolist()
+    mnk_rata_ms = data['Maros'].tolist()
+    idoszakok = data['idoszak'].tolist()
 
 def Kiir(megyek: list, adatok: list, idoszakok: list):
     print("Adatok (mért hónapok) száma : "+str(len(idoszakok)))
@@ -99,24 +98,38 @@ def plot_acf_and_pacf(data, megye_nev):
     plot_pacf(data, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({megye_nev})")
 
 
-adatokSzama = 379 
-evek = int(input("Hány évre visszamenőleg dolgozzam fel az adatsort?"))
-suruseg = int(input("Milyen sűrűséggel legyen az X tengely?"))
-Beolvas(filename, evek)                             # hány évre visszamenőleg kezdje el beolvasni
+def ARIMA(idosor, megye, p:int, d: int, q: int):
+        try:
+            print(megye+"\n")
+            p = int(p); q = int(q); d = int(d)
+            model = sm.tsa.ARIMA(idosor, order=(p, d, q))
+            model_fit = model.fit()
+            print (model_fit.summary())
+        
+        except Exception as e:
+            pass
+
+
+#adatokSzama = 153
+#evek = int(input("Hány évre visszamenőleg dolgozzam fel az adatsort?"))
+#suruseg = int(input("Milyen sűrűséggel legyen az X tengely?"))
+Beolvas(filename)                             # hány évre visszamenőleg kezdje el beolvasni
 adatok = [mnk_rata_cv, mnk_rata_hr, mnk_rata_ms]    #egyberakom a három megye adatait, hogy dinamikusabban hívhassam a függvényeket
 megyek = ["CV", "HR", "MS"]                         #segít megjelölni hogy az adatok listában melyik adatsor melyik megyét jelenti
-AbrazolEgyben(adatok, idoszakok, megyek, suruseg)
+#AbrazolEgyben(adatok, idoszakok, megyek, suruseg)
                      
 Kiir(megyek, adatok, idoszakok)
-statisztikak = Statisztikak(megyek, adatok)
-cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
-ShowStatisztikak(statisztikak)
-print("Kovászna átlaga: ", cvAtlag)
+ARIMA(adatok[2], "Kovászna megye", 1, 1, 1)
+
+#statisztikak = Statisztikak(megyek, adatok)
+#cvAtlag = GetStatisztika(statisztikak, "CV", "átlag")
+#ShowStatisztikak(statisztikak)
+#print("Kovászna átlaga: ", cvAtlag)
 
 # Autokorrelációs és parciális autokorrelációs tesztek
-for i, megye in enumerate(megyek):
-    plot_acf_and_pacf(adatok[i], megye)
+#for i, megye in enumerate(megyek):
+ #   plot_acf_and_pacf(adatok[i], megye)
 
-plt.tight_layout()
-plt.show()
+#plt.tight_layout()
+#plt.show()
 

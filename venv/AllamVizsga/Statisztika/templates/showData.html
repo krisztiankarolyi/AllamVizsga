@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <title>Adatok Megjelenítése</title>
+    <style>
+        img:hover{border: 2px solid crimson;}
+
+    </style>
 </head>
 
 <body class="has-background-dark has-text-light" style=" min-height: 100vh;">
@@ -108,44 +112,53 @@
             <p class="has-text-justified">
                 A PACF egy speciális autokorrelációs függvény, amely azt mutatja meg, hogy egy adott időpontban lévő érték milyen mértékben korrelál az előző időpontok értékeivel, miközben eltávolítja az előző időpontok közötti közvetlen hatásokat. A PACF hasznos az autoregresszív modellek (AR) paramétereinek becslésében.
             </p> <br>
-            {% for diagram in acfpacf %}
-                <div id="acfpacf" class="has-text-centered">
-                    <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="ACF és PACF teszt" style=" height: 30%;"></a>
-                </div>
-            {% endfor %}
+            <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; align-content: center;">
+                {% for diagram in acfpacf %}
+                    <div id="acfpacf" class="has-text-centered">
+                        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="ACF és PACF teszt" style=" height: 300px;"></a>
+                    </div>
+                {% endfor %}
+            </div>
                  
         </div>
     </section><hr>
 
-    <section style="max-width: 800px; margin: auto;">
+    <section style="max-width: 800px; margin: auto; width: 90%;">
         <h1 class="title has-text-centered has-text-light">
-            előrejelzés (hamarosan)
+            ARIMA modell együtthatóinak kiválasztása
         </h1>
         <hr>
         <form action="{% url 'arima' %}" method="POST">
             {% csrf_token %}
              <label for="p">p paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="0" required name="p" id="p">
+             <input class="input" type="number" value="1" min="0" required name="p" id="p"> 
              <label for="d">d paraméter értéke (ha kell)</label>
              <input class="input" type="number" value="1" min="0" required name="d" id="d">
              <label for="p">q paraméter értéke (ha kell)</label>
              <input class="input" type="number" value="1" min="0" required name="q" id="q">
+             <br><br>
+            <div style="display: flex; flex-direction: row; align-items:center; justify-content: space-between;">
 
-
-            <label for="ar">AR(p)</label>
-            <input type="checkbox" name="teszt" id="ar" value="ar">
-            
-            <label for="ma">MA(q)</label>
-            <input type="checkbox" name="teszt" id="ma" value="ma">
-            
-            <label for="arma">ARMA(p, q)</label>
-            <input type="checkbox" name="teszt" id="arma" value="arma">
-
-            <label for="arima">ARIMA(p,d, q)</label>
-            <input type="checkbox" name="teszt" id="arima" value="arima">
-                <br>
-            <input type="submit" class="button is-info" value="Tesztek futtatása">
+                <div>
+                    <label for="ar">AR(p)</label>
+                    <input type="checkbox" name="teszt" id="ar" value="ar"> &nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="ma">MA(q)</label>
+                    <input type="checkbox" name="teszt" id="ma" value="ma">&nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="arma">ARMA(p, q)</label>
+                    <input type="checkbox" name="teszt" id="arma" value="arma">&nbsp;&nbsp;&nbsp;
+               </div>
+               <div>
+                    <label for="arima">ARIMA(p,d, q)</label>
+                    <input type="checkbox" name="teszt" id="arima" value="arima">
+               </div>
+            </div><br>
+            <input type="submit" class="button is-info" style="width: 100%;" value="Tesztek futtatása">
         </form>
+        <br><br>
     </section>
 
 </body>

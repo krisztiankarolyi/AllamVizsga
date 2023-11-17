@@ -101,8 +101,8 @@ def Statisztikak(megyek, adatok, idoPontok):
 
 
 def plot_acf_and_pacf(data, megye_nev):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)  # Hozz létre egy közös X-tengelyt
-    fig.subplots_adjust(hspace=0.3)  # Állítsd be a térközt a két aldiagram között
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True) 
+    fig.subplots_adjust(hspace=0.3)  
     plot_acf(data, lags=40, ax=ax1, title=f"Autokorreláció ({megye_nev})")
     plot_pacf(data, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({megye_nev})")
     buffer = io.BytesIO()
@@ -135,6 +135,12 @@ def arima(request):
         for i in range(len(statisztikak)):
             test = str(statisztikak[i].ARMA(p, q))
             title = "\n"+statisztikak[i].megye_nev + " ARMA(" + p + ", " + q + ")\n"
+            resp.append(title + test)
+
+    if "arima" in tesztek:
+        for i in range(len(statisztikak)):
+            test = str(statisztikak[i].ARIMA(p, d, q))
+            title = "\n"+statisztikak[i].megye_nev + " ARIMA(" + p + ", " + d + ", "+q + ")\n"
             resp.append(title + test)
 
     response = HttpResponse(content_type='text/plain')
