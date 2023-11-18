@@ -7,7 +7,6 @@
     <title>Adatok Megjelenítése</title>
     <style>
         img:hover{border: 2px solid crimson;}
-
     </style>
 </head>
 
@@ -15,9 +14,8 @@
     <a href="{% url 'home' %}">Vissza a beállításokhoz</a>
     <section class="section has-background-dark has-text-light" style=" max-width: 1000px; margin: auto;">
         <h1 class="title has-text-white has-text-centered">Beolvasott Adatok</h1>
-        <div class="container has-background-dark has-text-light" style="max-height: 50vh; min-height: 50vh; overflow-y: scroll; min-width: 100%;">
+        <div class="container has-background-dark has-text-light" style="max-height: 33vh; min-height: 33vh; overflow-y: scroll; min-width: 100%;">
             <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
-
                 <tbody>
                     <tr>
                         <th class="has-background-grey-dark has-text-light">dátum</th>
@@ -105,13 +103,8 @@
                 </tbody>
             </table>
             <hr>
-            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs Függvény teszt(ACF)</h1> <hr>
-            <p class="has-text-justified">
-             Az ACF egy statisztikai függvény, amely megmutatja az adott idősor önmagával való autokorrelációját a különböző időlépések esetén. Az ACF egy olyan eszköz, amely segít megállapítani, hogy milyen mértékben korrelál egy adott időpontban lévő érték az előző időpontok értékeivel. Az ACF függvény ábrázolása során az első autokorrelációs érték mindig 1, mivel egy időpont önmagával maximálisan korrelál.
-            </p>
-            <p class="has-text-justified">
-                A PACF egy speciális autokorrelációs függvény, amely azt mutatja meg, hogy egy adott időpontban lévő érték milyen mértékben korrelál az előző időpontok értékeivel, miközben eltávolítja az előző időpontok közötti közvetlen hatásokat. A PACF hasznos az autoregresszív modellek (AR) paramétereinek becslésében.
-            </p> <br>
+            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
+             <br>
             <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; align-content: center;">
                 {% for diagram in acfpacf %}
                     <div id="acfpacf" class="has-text-centered">
@@ -125,38 +118,44 @@
 
     <section style="max-width: 800px; margin: auto; width: 90%;">
         <h1 class="title has-text-centered has-text-light">
-            ARIMA modell együtthatóinak kiválasztása
+            ARIMA modellek beállítása teszteléshez és előrejelzéshez
         </h1>
+        <p class="has-text-justified">A fenti ACF és PACF tesztek alapján itt lehet próbálkozni különböző idősor modellekkel.
+            A gomb megnyomását követően egy szöveges (txt) fájl kerül letöltésre, amely minden adatsort esetén a modell mutatóit és előrejelzéseit tartalmazza.
+        </p>
         <hr>
         <form action="{% url 'arima' %}" method="POST">
             {% csrf_token %}
-             <label for="p">p paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="0" required name="p" id="p"> 
-             <label for="d">d paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="0" required name="d" id="d">
-             <label for="p">q paraméter értéke (ha kell)</label>
-             <input class="input" type="number" value="1" min="0" required name="q" id="q">
-             <br><br>
-            <div style="display: flex; flex-direction: row; align-items:center; justify-content: space-between;">
-
+        {% for megye in statisztikak %}
+            <h3 class="has-text-centered subtitle has-text-light">{{ megye.megye_nev }}</h3>
+                <label for="{{ megye.megye_nev }}_p">p</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_p" id="{{ megye.megye_nev }}_p"> 
+                <label for="{{ megye.megye_nev }}_d">d </label>
+                <input class="input" type="number" value="0" min="0" required name="{{ megye.megye_nev  }}_d" id="{{ megye.megye_nev }}_d">
+                <label for="{{ megye.megye_nev }}_q">q</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_q" id="{{ megye.megye_nev }}_q">
+                <br><br>
+                <div style="display: flex; flex-direction: row; align-items:center; justify-content: space-between;">
                 <div>
-                    <label for="ar">AR(p)</label>
-                    <input type="checkbox" name="teszt" id="ar" value="ar"> &nbsp;&nbsp;&nbsp;
+                    <label for="{{ megye.megye_nev }}_ar">AR(p)</label>
+                    <input type="radio" checked name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ar" value="ar"> &nbsp;&nbsp;&nbsp;
                 </div>
                 <div>
-                    <label for="ma">MA(q)</label>
-                    <input type="checkbox" name="teszt" id="ma" value="ma">&nbsp;&nbsp;&nbsp;
+                    <label for="{{ megye.megye_nev }}_ma">MA(q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ma" value="ma">&nbsp;&nbsp;&nbsp;
                 </div>
                 <div>
-                    <label for="arma">ARMA(p, q)</label>
-                    <input type="checkbox" name="teszt" id="arma" value="arma">&nbsp;&nbsp;&nbsp;
-               </div>
-               <div>
-                    <label for="arima">ARIMA(p,d, q)</label>
-                    <input type="checkbox" name="teszt" id="arima" value="arima">
-               </div>
-            </div><br>
-            <input type="submit" class="button is-info" style="width: 100%;" value="Tesztek futtatása">
+                    <label for="{{ megye.megye_nev }}_arma">ARMA(p, q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arma" value="arma">&nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="{{ megye.megye_nev }}_arima">ARIMA(p,d, q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arima" value="arima">
+                </div>
+                </div>
+                <br><br>
+        {% endfor %}
+            <input type="submit" class="button is-info" style="width: 100%;" value="Tesztek és előrejelzések futtatása">
         </form>
         <br><br>
     </section>

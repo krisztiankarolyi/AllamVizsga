@@ -1,4 +1,5 @@
 import base64
+import os
 from django.http import HttpResponse
 from django.template import loader
 import io
@@ -15,7 +16,6 @@ global statisztikak
 statisztikak = []
 
 def home(request):
-    # Itt lehet bármilyen adatot előkészíteni a template számára, majd megjeleníteni
     return render(request, 'home.html')
 
 def statistics(request):
@@ -111,42 +111,73 @@ def plot_acf_and_pacf(data, megye_nev):
     return buffer
 
 
+
 def arima(request):
     if not statisztikak:
         return HttpResponse("Statisztikak is not initialized", status=400)
 
-    p = request.POST['p']; q = request.POST['q']; d = request.POST['d']
-    tesztek = request.POST.getlist('teszt')
     resp = []
+    model_summary_file_path = 'model_summary.txt'
+    forecast_file_path = 'arima_forecasts.txt'
 
-    if "ar" in tesztek:
-        for i in range(len(statisztikak)):
-            test = str(statisztikak[i].AR(p))
-            title = "\n"+statisztikak[i].megye_nev + " AR(" + p + ")\n"
-            resp.append(title + test)
+    # Nyisd meg a fájlokat egyszer a ciklus előtt
+    with open(model_summary_file_path, 'w+') as model_summary_file, open(forecast_file_path, 'w+') as forecast_file:
+        for megye in statisztikak:
+            p = request.POST[megye.megye_nev+'_p']
+            q = request.POST[megye.megye_nev+'_q']
+            d = request.POST[megye.megye_nev+'_d']
+            tipus = request.POST[megye.megye_nev+'_tipus']
 
-    if "ma" in tesztek:
-        for i in range(len(statisztikak)):
-            test = str(statisztikak[i].MA(q))
-            title = "\n"+statisztikak[i].megye_nev + " MA(" + q + ")\n"
-            resp.append(title + test)
+            if(tipus == "ar"):
+                test_results = megye.AR(p)
+                model_summary_file.write(f"{'='*40}\n{megye.megye_nev} AR({p})\n{'='*40}\n")
+                model_summary_file.write(str(test_results[0])) 
+                model_summary_file.write('\n\n')
+                forecast_file.write(str(test_results[1])) 
+                forecast_file.write('\n\n')
+                title = "\n" + megye.megye_nev + " AR(" + p + ")\n"
+                resp.append(title + str(test_results[0]))
 
-    if "arma" in tesztek:
-        for i in range(len(statisztikak)):
-            test = str(statisztikak[i].ARMA(p, q))
-            title = "\n"+statisztikak[i].megye_nev + " ARMA(" + p + ", " + q + ")\n"
-            resp.append(title + test)
+            if(tipus == "ma"):
+                test_results = megye.MA(q)
+                model_summary_file.write(f"{'='*40}\n{megye.megye_nev} MA({q})\n{'='*40}\n")
+                model_summary_file.write(str(test_results[0])) 
+                model_summary_file.write('\n\n')
+                forecast_file.write(str(test_results[1])) 
+                forecast_file.write('\n\n')
+                title = "\n" + megye.megye_nev + " MA(" + q + ")\n"
+                resp.append(title + str(test_results[0]))
 
-    if "arima" in tesztek:
-        for i in range(len(statisztikak)):
-            test = str(statisztikak[i].ARIMA(p, d, q))
-            title = "\n"+statisztikak[i].megye_nev + " ARIMA(" + p + ", " + d + ", "+q + ")\n"
-            resp.append(title + test)
+            if(tipus == "arma"):
+                test_results = megye.ARMA(p, q)
+                model_summary_file.write(f"{'='*40}\n{megye.megye_nev} ARMA({p}, {q})\n{'='*40}\n")
+                model_summary_file.write(str(test_results[0])) 
+                forecast_file.write(str(test_results[1]))  
+                forecast_file.write('\n\n')
+                title = "\n" + megye.megye_nev + " ARMA(" +p+", "+ q + ")\n"
+                resp.append(title + str(test_results[0]))
 
     response = HttpResponse(content_type='text/plain')
-    response['Content-Disposition'] = 'attachment; filename="arima_results.txt"'
+    response['Content-Disposition'] = f'attachment; filename="model_summary.txt"'
 
-    for line in resp:
-        response.write(line)
+    with open(model_summary_file_path, 'r') as model_summary_file:
+        for line in model_summary_file:
+            response.write(line)
+
+    response.write('\nElőrejelzések\n')  # Add a separator between the two files
+
+    with open(forecast_file_path, 'r') as forecast_file:
+        for line in forecast_file:
+            response.write(line)
+
+    os.remove(model_summary_file_path)
+    os.remove(forecast_file_path)
 
     return response
+
+
+
+
+def arimaForecasts(request):
+    return render(request, "arimaForecasts.html")
+
