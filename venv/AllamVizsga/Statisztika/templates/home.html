@@ -39,12 +39,39 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label" for="endRow">A diagrammon milyen sűrűséggel legyen feliratozva az X tengely (hónapokban)? </label>
+                    <label class="label" for="endRow">A grafikonon milyen sűrűséggel legyen feliratozva az X tengely (hónapokban)? </label>
                     <div class="control">
                         <input class="input" type="number" value="12" min="1" required name="suruseg" id="suruseg">
                     </div>
                 </div>
                 
+            <h2 class="title has-text-dark has-text-center">Valós (mért) adatok feltöltése a MSE és RRMSE tesztek végzéséhez</h2>
+              <p class="has-text-dark">Kérem, töltse fel az előkészített .XLS / .XLSX fájlt, amely a becsült időszakkal megegyező elemszámú adatsort tartalmazza! </p>
+      
+            <div class="field" >
+                <div class="file has-name is-boxed" >
+                    <label class="file-label">
+                        <input class="file-input" id="file_teszt" type="file" name="file_teszt">
+
+                        <span class="file-cta">
+                            <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                            </span>
+                            <span class="file-label">
+                                Válasszon fájlt...
+                            </span>
+                        </span>
+                        <span class="file-name" id="fileNameLabel2">
+                            Nincs kiválasztott fájl.
+                        </span>
+                    </label>
+                </div>
+                <label class="label" for="startRow">Mi a munkalap neve?</label>
+                <div class="control">
+                    <input class="input" placeholder="teszt" type="text"  required name="tesztSheetName" id="tesztSheetName">
+                </div>
+            </div>
+
                 <div class="field">
                     <div class="control">
                         <button type="submit" class="button is-primary">Feltöltés</button>
@@ -55,17 +82,24 @@
     </section>
     
     <script>
-      
         const fileInput = document.getElementById('fileInput');
+        const fileInput2 = document.getElementById('file_teszt');
         const fileNameLabel = document.getElementById('fileNameLabel');
+        const fileNameLabel2 = document.getElementById('fileNameLabel2');
 
         fileInput.addEventListener('change', function() {
             if (fileInput.files.length > 0) {
-                // Ha van kiválasztott fájl, frissítjük a név szöveget
                 fileNameLabel.textContent = fileInput.files[0].name;
             } else {
-                // Ha nincs kiválasztott fájl, visszaállítjuk az eredeti szöveget
                 fileNameLabel.textContent = 'Nincs kiválasztott fájl.';
+            }
+        });
+
+        fileInput2.addEventListener('change', function() {
+            if (fileInput2.files.length > 0) {
+                fileNameLabel2.textContent = fileInput2.files[0].name;
+            } else {
+                fileNameLabel2.textContent = 'Nincs kiválasztott fájl.';
             }
         });
     </script>

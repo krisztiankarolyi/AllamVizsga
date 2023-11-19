@@ -4,15 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <title>Adatok Megjelenítése</title>
+    <title>ARIMA előrejelzések</title>
     <style>
         img:hover{border: 2px solid crimson;}
-
     </style>
 </head>
-
+<br>
 <body class="has-background-dark has-text-light" style=" min-height: 100vh;">
+    <p style="text-align: center; margin: auto;">
+        <a style="background-color:darkmagenta; color: white; margin: auto; width: 90%; max-width: 1000px; display: block; border-radius: 10px; padding: 10px 5px;  font-size: 1.2rem; text-decoration: none;" href="{% url 'download_model' %}">
+            A modellek elemzéseinek letöltése</a>
+    </p>
+     <br>
+    
+    <div class="container" style="max-width: 1000px; width: 90%;">
+        {% for megye in megyek %}
+            <div class="box">
+                <h1 class="subtitle">{{ megye.model}} </h1>
+                <p>___MSE: {{ megye.MSE }}</p>
+                <p>RRMSE: {{ megye.RRMSE}}</p>
+                <p>Becslések: {{ megye.becslesek}}</p>
+                <p>Valódi adatok: {{ megye.teszt_adatok}}</p>
+            </div>
+        {% endfor %}
 
+
+        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;"></a>
 
 </body>
 </html>
