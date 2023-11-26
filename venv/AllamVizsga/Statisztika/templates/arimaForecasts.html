@@ -28,8 +28,12 @@
             </div>
         {% endfor %}
 
+        <p class="has-text-centered">Becsült adatok</p>
+        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
+        <br>
+        <p class="has-text-centered">Eredeti (mért) adatok</p>
+        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram_eredeti }}" alt="Eredeti (mért) adatok grafikonja"  title="Eredeti (mért) adatok grafikonja"style=" height: 30%;"></a>
+        <br><br>
 
-        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;"></a>
-
-</body>
+    </body>
 </html>

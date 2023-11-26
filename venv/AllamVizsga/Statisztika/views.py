@@ -15,15 +15,15 @@ import statsmodels.api as sm
 from django.shortcuts import redirect, reverse
 
 
-global statisztikak
-statisztikak = []
+global statisztikak 
+
 
 def home(request):
     return render(request, 'home.html')
 
 def statistics(request):
     if 'file' not in request.FILES:
-        return HttpResponse("Nem lett fájl feltöltve!", status=400)
+        return render(request, 'home.html')
 
     uploaded_file = request.FILES['file']
     suruseg = int(request.POST['suruseg'])
@@ -77,9 +77,10 @@ def statistics(request):
         return HttpResponse("Helytelen fájl!", status=400)
 
 
-def AbrazolEgyben(adatok, idoszakok, megyek, suruseg): 
+def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, y_min=None, y_max=None, y_step=None): 
     utolso_ev_ho = idoszakok[-1] 
     elso_ev_ho = idoszakok[0]
+    
     plt.figure(figsize=(15, 7))
     for i, megye in enumerate(megyek): 
         plt.plot(idoszakok, adatok[i], label=megye)
@@ -88,11 +89,17 @@ def AbrazolEgyben(adatok, idoszakok, megyek, suruseg):
     plt.ylabel('Munkanélküliségi ráta (%)')
     plt.title(f"Székelyföldi megyék Munkanélküliségi rátái {elso_ev_ho} - {utolso_ev_ho} között")
     plt.grid(True)
+
     try:
-      plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
+        plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
     except:
         pass
+    
+    if y_min is not None and y_max is not None and y_step is not None:
+        plt.yticks(np.arange(y_min, y_max, y_step))
+    
     plt.legend()
+    
     buffer = io.BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)  
@@ -119,7 +126,7 @@ def Statisztikak(megyek, adatok, idoPontok):
 
 
 def plot_acf_and_pacf(data, megye_nev):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True) 
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False) 
     fig.subplots_adjust(hspace=0.3)  
     plot_acf(data, lags=40, ax=ax1, title=f"Autokorreláció ({megye_nev})")
     plot_pacf(data, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({megye_nev})")
@@ -132,19 +139,17 @@ def plot_acf_and_pacf(data, megye_nev):
 
 def arima(request):
     if not statisztikak:
-        return HttpResponse("Statisztikak is not initialized", status=400)
+        return render("home.html")
 
     model_summary_file_path = 'model_summary.txt'
     forecast_file_path = 'arima_forecasts.txt'
 
-    forecasts = {}  # Inicializáld a forecasts szótárat a ciklus előtt
-
-    # Nyisd meg a fájlokat egyszer a ciklus előtt
     with open(model_summary_file_path, 'w+') as model_summary_file, open(forecast_file_path, 'w+') as forecast_file:
         t = int(request.POST['t'])
         idoszakok_ = ["2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07"]
         megyek = []
         adatsorok =[] 
+        eredeti_adatsorok = []
 
         for megye in statisztikak:
             p = request.POST[megye.megye_nev+'_p']
@@ -177,12 +182,15 @@ def arima(request):
                 forecast_file.write('\n\n')
                 megyek.append(megye.megye_nev)
                 adatsorok.append(megye.becslesek)
-
-
-    diagram = AbrazolEgyben(adatsorok, idoszakok_, megyek, 1)
-    diagram = base64.b64encode(diagram.read()).decode('utf-8')
+                eredeti_adatsorok.append(megye.teszt_adatok)
     
-    return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagram": diagram})
+    diagram = AbrazolEgyben(adatsorok, idoszakok_, megyek, 1, 2, 5, 0.5)
+    diagram = base64.b64encode(diagram.read()).decode('utf-8')
+
+    diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, idoszakok_, megyek, 1, 2, 5, 0.5)
+    diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
+    
+    return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagram": diagram, "diagram_eredeti": diagram_eredeti})
 
 
 def download(request):
