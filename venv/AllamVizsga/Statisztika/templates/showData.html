@@ -106,11 +106,14 @@
             <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
              <br>
             <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; align-content: center;">
-                {% for diagram in acfpacf %}
-                    <div id="acfpacf" class="has-text-centered">
-                        <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="ACF és PACF teszt" style=" height: 300px;"></a>
-                    </div>
-                {% endfor %}
+                {% for megye in statisztikak %}
+                <div id="acfpacf" class="has-text-centered">
+                    <a target="_blank" href="data:image/png;base64,{{ megye.pacf_acf_Diagram }}">
+                        <img src="data:image/png;base64,{{ megye.pacf_acf_Diagram }}" alt="ACF és PACF teszt" style="height: 300px;">
+                    </a>
+                </div>
+               {% endfor %}
+                
             </div>
                  
         </div>

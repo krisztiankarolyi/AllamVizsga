@@ -10,19 +10,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from .models import Stat
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 import statsmodels.api as sm
 from django.shortcuts import redirect, reverse
 
 
 global statisztikak 
 
-
 def home(request):
     return render(request, 'home.html')
 
 def statistics(request):
-    if 'file' not in request.FILES:
+    if 'file' not in request.FILES and 'file' not in request.session:
         return render(request, 'home.html')
 
     uploaded_file = request.FILES['file']
@@ -31,7 +29,7 @@ def statistics(request):
     adatsorok = []     # kétdimenziós lista, az első oszlop utáni oszlopokat (megyék idősorait) tárolja
     adatsorNevek = []  # az oszlopok fejlécei, pl. a megyék nevei
     idoPontok = []     # a legelső oszlop, a megfigyelések időpontjait tárolja
-    acfpacf = []       # acf és pacf tesztek diagrammjait tárolja képekben
+
 
     teszt_adatok =  request.FILES['file_teszt'] # az előrejelzett adatokkal fogjuk összehasonlítani
     tesztSheetName = request.POST['tesztSheetName']
@@ -56,13 +54,12 @@ def statistics(request):
         diagram = base64.b64encode(diagram.read()).decode('utf-8')
 
         global statisztikak
-        statisztikak = Statisztikak(adatsorNevek, adatsorok, idoPontok)
 
-        for i in range(len(adatsorNevek)):
-            plot = (plot_acf_and_pacf(adatsorok[i], adatsorNevek[i]))
-            acfpacf.append( base64.b64encode(plot.read()).decode('utf-8'))
+        statisztikak = createStatObjects(adatsorNevek, adatsorok, idoPontok)                                                  # és azok eltárolása egy listában
+    
+        for megye in statisztikak:      #a megyék acf és pacf teszt diagramjainak generáltatása
+            megye.plot_acf_and_pacf()
 
-        
         teszt_adatok_df = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
         for i in statisztikak:
             for j in fejlec:
@@ -71,7 +68,7 @@ def statistics(request):
             print(i.teszt_adatok)
         
 
-        return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak':statisztikak, 'diagram': diagram, 'acfpacf': acfpacf })
+        return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak':statisztikak, 'diagram': diagram})
 
     except pd.errors.ParserError:
         return HttpResponse("Helytelen fájl!", status=400)
@@ -106,35 +103,12 @@ def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, y_min=None, y_max=None, y_
     return buffer
     
 
-def SzamitStatisztikak(adatok: list):
-    statisztikak = {
-        "átlag": round(np.mean(adatok),4),
-        "szórás": round(np.std(adatok),4),
-        "variancia": round(np.var(adatok),4),
-        "medián": round(np.median(adatok), 4),
-        "min": np.min(adatok),
-        "max": np.max(adatok)
-    }
-    return statisztikak
-
-def Statisztikak(megyek, adatok, idoPontok):
+def createStatObjects(megyek, adatok, idoPontok):
     eredmenyek = []
     for i in range(len(megyek)):
         statisztika = Stat(megyek[i], adatok[i], idoPontok)
         eredmenyek.append(statisztika)
     return eredmenyek
-
-
-def plot_acf_and_pacf(data, megye_nev):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False) 
-    fig.subplots_adjust(hspace=0.3)  
-    plot_acf(data, lags=40, ax=ax1, title=f"Autokorreláció ({megye_nev})")
-    plot_pacf(data, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({megye_nev})")
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format="png")
-    buffer.seek(0)  
-    return buffer
-
 
 
 def arima(request):

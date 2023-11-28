@@ -4,7 +4,10 @@ from django.db import models
 from matplotlib import pyplot as plt
 import numpy as np
 import statsmodels.api as sm
-    
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import base64
+import io
+
 class Stat:
     megye_nev = ""
     atlag = szoras = varriancia = median = min = max = 0.0
@@ -16,6 +19,8 @@ class Stat:
     mse = 0
     rrmse = 0
     title = ""
+    pacf_acf_Diagram  = ""
+
 
 
     def __init__(self, megye_nev, adatok, idoPontok):
@@ -96,4 +101,13 @@ class Stat:
         except Exception as e:
             print(e)
         
-        
+    def plot_acf_and_pacf(self):
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False)
+        fig.subplots_adjust(hspace=0.3)
+        plot_acf(self.adatok, lags=40, ax=ax1, title=f"Autokorreláció ({self.megye_nev})")
+        plot_pacf(self.adatok, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({self.megye_nev})")
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        self.pacf_acf_Diagram = encoded_image
