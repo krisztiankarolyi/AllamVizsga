@@ -103,6 +103,30 @@
                 </tbody>
             </table>
             <hr>
+                <h1>Stacionaritás tesztek (ADF és KPSS)</h1>
+                <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>ADF Statisztika</th>
+                            <th>ADF p-érték</th>
+                            <th>KPSS Statisztika</th>
+                            <th>KPSS p-érték</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for megye in statisztikak %}
+                        <tr>
+                            <td>{{ megye.megye_nev}}</td>
+                            <td>{{ megye.adf.adf_stat }}</td>
+                            <td>{{ megye.adf.p_value }}</td>
+                            <td>{{ megye.kpss.kpss_stat }}</td>
+                            <td>{{ megye.kpss.p_value }}</td>
+                        </tr>
+                        {% endfor%}
+                    </tbody>
+                </table>
+            <hr>
             <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
              <br>
             <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; align-content: center;">
