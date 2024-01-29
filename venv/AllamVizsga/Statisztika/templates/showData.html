@@ -103,29 +103,50 @@
                 </tbody>
             </table>
             <hr>
-                <h1>Stacionaritás tesztek (ADF és KPSS)</h1>
-                <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
+            
+            <h1>Stacionaritás tesztek (ADF és KPSS)</h1>
+            <div style="overflow-x: auto;">
+                <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%; overflow-x: scroll;">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th>ADF Statisztika</th>
-                            <th>ADF p-érték</th>
-                            <th>KPSS Statisztika</th>
-                            <th>KPSS p-érték</th>
+                            <th rowspan="2"></th>
+                            <th colspan="5" class="has-text-centered">ADF</th>
+                            <th colspan="5" class="has-text-centered">KPSS</th>
+                        </tr>
+                        <tr style="font-size: 0.9rem;">
+                            <th>Statisztika</th>
+                            <th>p-érték</th>
+                            <th>Kritikus Érték (1%)</th>
+                            <th>Kritikus Érték (5%)</th>
+                            <th>Kritikus Érték (10%)</th>
+                            <th>Statisztika</th>
+                            <th>p-érték</th>
+                            <th>Kritikus Érték (1%)</th>
+                            <th>Kritikus Érték (5%)</th>
+                            <th>Kritikus Érték (10%)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for megye in statisztikak %}
                         <tr>
-                            <td>{{ megye.megye_nev}}</td>
+                            <td>{{ megye.megye_nev }}</td>
                             <td>{{ megye.adf.adf_stat }}</td>
                             <td>{{ megye.adf.p_value }}</td>
+                            <td>{{ megye.adf.critical_values.1 }}</td>
+                            <td>{{ megye.adf.critical_values.5 }}</td>
+                            <td>{{ megye.adf.critical_values.10 }}</td>
                             <td>{{ megye.kpss.kpss_stat }}</td>
                             <td>{{ megye.kpss.p_value }}</td>
+                            <td>{{ megye.kpss.critical_values.1 }}</td>
+                            <td>{{ megye.kpss.critical_values.5 }}</td>
+                            <td>{{ megye.kpss.critical_values.10 }}</td>
                         </tr>
-                        {% endfor%}
+                        {% endfor %}
                     </tbody>
                 </table>
+                
+            </div>
+
             <hr>
             <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
              <br>
@@ -182,11 +203,7 @@
                 </div>
                 <br><br>
         {% endfor %}
-            <label for="t">Hány hónapra jelezzek előre?</label>
-            <input class="input" placeholder="10" type="number" min="0" max="10" required name="t" id="t"> <br>
-            <br>
-            
-            
+            <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
             <input type="submit" class="button is-info" style="width: 100%;" value="Tesztek és előrejelzések futtatása">
         </form>
         <br><br>

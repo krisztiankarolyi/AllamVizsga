@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime
 import os
+import traceback
 import matplotlib.dates as mdates
 from django.http import HttpResponse
 from django.template import loader
@@ -20,8 +21,8 @@ def home(request):
     return render(request, 'home.html')
 
 def statistics(request):
-    if 'file' not in request.FILES and 'file' not in request.session:
-        return render(request, 'home.html')
+    if 'file' not in request.FILES:
+        return redirect('home')
 
     uploaded_file = request.FILES['file']
     suruseg = int(request.POST['suruseg'])
@@ -29,10 +30,20 @@ def statistics(request):
     adatsorok = []     # kétdimenziós lista, az első oszlop utáni oszlopokat (megyék idősorait) tárolja
     adatsorNevek = []  # az oszlopok fejlécei, pl. a megyék nevei
     idoPontok = []     # a legelső oszlop, a megfigyelések időpontjait tárolja
-
-
-    teszt_adatok =  request.FILES['file_teszt'] # az előrejelzett adatokkal fogjuk összehasonlítani
+    teszt_adatok = None
+    
+    if 'sameFile' in request.POST:
+         teszt_adatok =  request.FILES['file']
+    else:
+        if 'file_teszt' not in request.FILES:
+            return redirect('home')
+        teszt_adatok =  request.FILES['file_teszt'] # az előrejelzett adatokkal fogjuk összehasonlítani
+    
     tesztSheetName = request.POST['tesztSheetName']
+    global beolvasott_teszt_idoszakok
+    df_teszt = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
+    fejlec = df_teszt.columns.tolist()
+    beolvasott_teszt_idoszakok = df_teszt[fejlec[0]].tolist()
 
     try:
         global df
@@ -71,6 +82,7 @@ def statistics(request):
         return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak':statisztikak, 'diagram': diagram})
 
     except pd.errors.ParserError:
+        print(traceback.format_exc())
         return HttpResponse("Helytelen fájl!", status=400)
 
 
@@ -90,7 +102,7 @@ def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, y_min=None, y_max=None, y_
     try:
         plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
     except:
-        pass
+        print(traceback.format_exc())
     
     if y_min is not None and y_max is not None and y_step is not None:
         plt.yticks(np.arange(y_min, y_max, y_step))
@@ -112,60 +124,67 @@ def createStatObjects(megyek, adatok, idoPontok):
 
 
 def arima(request):
-    if not statisztikak:
-        return render("home.html")
+    try: 
+        model_summary_file_path = 'model_summary.txt'
+        forecast_file_path = 'arima_forecasts.txt'
 
-    model_summary_file_path = 'model_summary.txt'
-    forecast_file_path = 'arima_forecasts.txt'
+        with open(model_summary_file_path, 'w+') as model_summary_file, open(forecast_file_path, 'w+') as forecast_file:
+            global beolvasott_teszt_idoszakok
+            megyek = []
+            adatsorok =[] 
+            eredeti_adatsorok = []
 
-    with open(model_summary_file_path, 'w+') as model_summary_file, open(forecast_file_path, 'w+') as forecast_file:
-        t = int(request.POST['t'])
-        idoszakok_ = ["2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07"]
-        megyek = []
-        adatsorok =[] 
-        eredeti_adatsorok = []
+            for megye in statisztikak:
+                p = request.POST[megye.megye_nev+'_p']
+                q = request.POST[megye.megye_nev+'_q']
+                d = request.POST[megye.megye_nev+'_d']
+                megye.teszt_idoszakok = beolvasott_teszt_idoszakok 
+                tipus = request.POST[megye.megye_nev+'_tipus']
+                test_results = None
+                title = None
+                t = len(beolvasott_teszt_idoszakok)
 
-        for megye in statisztikak:
-            p = request.POST[megye.megye_nev+'_p']
-            q = request.POST[megye.megye_nev+'_q']
-            d = request.POST[megye.megye_nev+'_d']
-            megye.teszt_idoszakok = idoszakok_ 
-            tipus = request.POST[megye.megye_nev+'_tipus']
-            test_results = None
-            title = None
+                if tipus == "ar":
+                    test_results = megye.AR(p, t)
+                    title = f"\n{megye.megye_nev} AR({p})\n"
 
+                elif tipus == "ma":
+                    test_results = megye.MA(q, t)
+                    title = f"\n{megye.megye_nev} MA({q})\n"
 
-            if tipus == "ar":
-                test_results = megye.AR(p, t)
-                title = f"\n{megye.megye_nev} AR({p})\n"
+                elif tipus == "arma":
+                    test_results = megye.ARMA(p, q, t)
+                    title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
+                
+                elif tipus == "arima":
+                    test_results = megye.ARIMA(p, d, q, t)
+                    title = f"\n{megye.megye_nev} ARIMA({p}, {d}, {q})\n"
 
-            elif tipus == "ma":
-                test_results = megye.MA(q, t)
-                title = f"\n{megye.megye_nev} MA({q})\n"
+                if test_results:
+                    model_summary_file.write(f"{'='*40}\n{title}{'='*40}\n")
+                    model_summary_file.write(str(test_results[0]))
+                    model_summary_file.write('\n\n')
+                    model_summary_file.write("Elorejelzett ertekek: "+str(test_results[1]))
+                    megye.model = title
+                    model_summary_file.write('\n\n')
+                    model_summary_file.write('MSE: '+str(megye.MSE())+ "\nRMSE: "+ str(megye.RRMSE())+"\n")
 
-            elif tipus == "arma":
-                test_results = megye.ARMA(p, q, t)
-                title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
+                    megyek.append(megye.megye_nev)
+                    adatsorok.append(megye.becslesek)
+                    eredeti_adatsorok.append(megye.teszt_adatok)
+        
 
-            if test_results:
-                model_summary_file.write(f"{'='*40}\n{title}{'='*40}\n")
-                model_summary_file.write(str(test_results[0]))
-                model_summary_file.write('\n\n')
-                model_summary_file.write(str(test_results[1]))
-                megye.model = title
-                forecast_file.write('\n\n')
-                megyek.append(megye.megye_nev)
-                adatsorok.append(megye.becslesek)
-                eredeti_adatsorok.append(megye.teszt_adatok)
+        diagram = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, megyek, 1, 2, 5, 0.5)
+        diagram = base64.b64encode(diagram.read()).decode('utf-8')
+
+        diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, beolvasott_teszt_idoszakok, megyek, 1, 2, 5, 0.5)
+        diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
+            
+        return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagram": diagram, "diagram_eredeti": diagram_eredeti})
     
-    diagram = AbrazolEgyben(adatsorok, idoszakok_, megyek, 1, 2, 5, 0.5)
-    diagram = base64.b64encode(diagram.read()).decode('utf-8')
-
-    diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, idoszakok_, megyek, 1, 2, 5, 0.5)
-    diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
-    
-    return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagram": diagram, "diagram_eredeti": diagram_eredeti})
-
+    except:
+        print(traceback.format_exc())
+        return redirect('home')
 
 def download(request):
     file_path = 'model_summary.txt'  # Az aktuális fájl elérési útvonala
@@ -173,6 +192,7 @@ def download(request):
         response = HttpResponse(file.read(), content_type='application/force-download')
         response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
         return response
+
 
 def mse(request):
     return render(request, "arimaForecasts.html")

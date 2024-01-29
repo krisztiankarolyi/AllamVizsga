@@ -1,4 +1,5 @@
-import smtpd
+
+import traceback
 from typing import Any
 from django.db import models
 from matplotlib import pyplot as plt
@@ -8,11 +9,12 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
 import base64
+import json
 import io
 
-class Stat:
+class Stat :
     megye_nev = ""
-    adf = {};
+    adf = {}
     kpss = {}
     atlag = szoras = varriancia = median = min = max = 0.0
     minDatum = maxDatum = ""
@@ -24,7 +26,6 @@ class Stat:
     title = ""
     pacf_acf_Diagram  = ""
     
-
 
     def __init__(self, megye_nev, adatok, idoPontok):
         self.megye_nev = megye_nev
@@ -39,31 +40,60 @@ class Stat:
         self.minDatum = idoPontok[list.index(adatok, self.min)]
         self.maxDatum = idoPontok[list.index(adatok, self.max)]
         self.adf = {}; self.kpss = {}
+        self.aic = 0
         self.Stationarity()
     
 
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
 
+
     def MSE(self):
-        n = len(self.teszt_adatok)
-        return np.sum((self.teszt_adatok - self.becslesek)**2) / n 
+        try:
+            n = len(self.teszt_adatok)
+            teszt_adatok_np = np.array(self.teszt_adatok)
+            becslesek_np = np.array(self.becslesek)
+            
+            self.mse = np.sum((teszt_adatok_np - becslesek_np)**2) / n
+            return self.mse
+        except:
+            return -1   
     
     def RRMSE(self):
-        mse = self.MSE()
-        mean_y = np.mean(self.teszt_adatok)
-        return np.sqrt(mse) / mean_y
+        try:
+            mse = self.MSE()
+            mean_y = np.mean(self.teszt_adatok)
+            
+            # Ellenőrizze, hogy a gyök alatt lévő kifejezés értéke negatív-e
+            if mse < 0 or mean_y <= 0:
+                self.rrmse = np.sqrt(-1*(mse)) / mean_y
+            else:  
+                self.rrmse = np.sqrt(mse) / mean_y
+            return self.rrmse
+        
+        except Exception as e:
+            print(e)
+            return -1
+
     
     def Stationarity(self):
         adf_result = adfuller(self.adatok)
-        self.adf["adf_stat"] = adf_result[0]
-        self.adf["p_value"] = adf_result[1]
-        self.adf["critical_values"] = adf_result[4]
+        self.adf["adf_stat"] = round(adf_result[0], 2)
+        self.adf["p_value"] = round(adf_result[1], 2)
+        self.adf["critical_values"] = {1: 0, 5:0, 10: 0}
+
+        self.adf["critical_values"]['1'] = round(adf_result[4]["1%"], 2)
+        self.adf["critical_values"]['5'] = round(adf_result[4]["5%"], 2)
+        self.adf["critical_values"]['10'] = round(adf_result[4]["10%"], 2)
 
         kpss_result = kpss(self.adatok)
-        self.kpss["kpss_stat"] = kpss_result[0]
-        self.kpss["p_value"] = kpss_result[1]
-        self.kpss["critical_values"] = kpss_result[3]
+        self.kpss["kpss_stat"] = round(kpss_result[0], 2)
+        self.kpss["p_value"] = round(kpss_result[1], 2)
+
+        self.kpss["critical_values"] = {1: 0, 5:0, 10: 0}
+        self.kpss["critical_values"]['1'] = round( kpss_result[3]["1%"],2)
+        self.kpss["critical_values"]['5'] = round(kpss_result[3]["5%"], 2)
+        self.kpss["critical_values"]['10'] = round(kpss_result[3]["10%"], 2)
 
     def AR(self, p: int, t:int):
         try:
@@ -71,9 +101,10 @@ class Stat:
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, 0, 0))
             model_fit = model.fit()
-            forecast_values = model_fit.forecast(t)
             self.becslesek = model_fit.forecast(t)
-            return ([model_fit.summary(), forecast_values])
+            self.aic= model_fit.aic
+
+            return ([model_fit.summary(), self.becslesek])
         
         except Exception as e:
             print(e)
@@ -84,9 +115,10 @@ class Stat:
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(0, 0, q))
             model_fit = model.fit()
-            forecast_values = model_fit.forecast(t)
             self.becslesek = model_fit.forecast(t)
-            return ([model_fit.summary(), forecast_values])
+            self.aic= model_fit.aic
+
+            return ([model_fit.summary(), self.becslesek])
         
         except Exception as e:
             print(e)
@@ -97,9 +129,15 @@ class Stat:
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, 0, q))
             model_fit = model.fit()
-            forecast_values = model_fit.forecast(t)
-            self.becslesek = model_fit.forecast(t)
-            return ([model_fit.summary(), forecast_values])
+            
+            # Módosítás: Csak a tesztadatok méretéig számoljuk ki a becsléseket
+            self.becslesek = [round(value, 2) for value in model_fit.forecast(t)]
+            self.aic = model_fit.aic
+
+            return ([model_fit.summary(), self.becslesek])
+        
+        except Exception as e:
+            print(e)
         
         except Exception as e:
             print(e)
@@ -110,9 +148,10 @@ class Stat:
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, d, q))
             model_fit = model.fit()
-            forecast_values = model_fit.forecast(10)
             self.becslesek = model_fit.forecast(t)
-            return ([model_fit.summary(), forecast_values])
+            self.aic= model_fit.aic
+
+            return ([model_fit.summary(), self.becslesek])
    
         except Exception as e:
             print(e)
@@ -127,3 +166,14 @@ class Stat:
         buffer.seek(0)
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
+
+    @classmethod
+    def from_json(cls, json_str):
+        data = json.loads(json_str)
+        return cls(**data)
+
+class StatEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Stat):
+            return obj.__dict__
+        return super().default(obj)

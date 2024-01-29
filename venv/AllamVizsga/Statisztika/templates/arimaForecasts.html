@@ -18,17 +18,42 @@
      <br>
     
     <div class="container" style="max-width: 1000px; width: 90%;">
-        {% for megye in megyek %}
-            <div class="box">
-                <h1 class="subtitle">{{ megye.model}} </h1>
-                <p>___MSE: {{ megye.MSE }}</p>
-                <p>RRMSE: {{ megye.RRMSE}}</p>
-                <p>Becslések: {{ megye.becslesek}}</p>
-                <p>Valódi adatok: {{ megye.teszt_adatok}}</p>
-            </div>
-        {% endfor %}
+        <div class="container" style="max-width: 1000px; ">
+            <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>AIC</th>
+                        <th>MSE</th>
+                        <th>RRMSE</th>
+                        <th>Becslések</th>
+                        <th>Valódi adatok</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for megye in megyek %}
+                    <tr>
+                        <td>{{ megye.model }}</td>
+                        <td>{{ megye.aic|floatformat:2 }}</td>
+                        <td>{{ megye.MSE|floatformat:2 }}</td>
+                        <td>{{ megye.RRMSE|floatformat:2 }}</td>
+                        <td>            
+                            {% for becsles in megye.becslesek %}
+                                <i>{{ becsles|floatformat:2 }}, </i>
+                            {% endfor %}
+                        </td>
+                        <td>            
+                            {% for mertadat in megye.teszt_adatok %}
+                                <i>{{ mertadat|floatformat:2 }}, </i>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-        <p class="has-text-centered">Becsült adatok</p>m
+        <p class="has-text-centered">Becsült adatok</p>
         <a target="_blank" href="data:image/png;base64,{{ diagram }}"><img src="data:image/png;base64,{{ diagram }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
         <br>
         <p class="has-text-centered">Eredeti (mért) adatok</p>

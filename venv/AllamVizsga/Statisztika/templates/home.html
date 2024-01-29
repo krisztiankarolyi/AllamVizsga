@@ -19,7 +19,7 @@
                 <div class="field">
                     <div class="file has-name is-boxed">
                         <label class="file-label">
-                            <input class="file-input" id="fileInput" type="file" name="file">
+                            <input class="file-input" id="fileInput" accept=".xlsx, .xls" type="file" name="file">
                             <span class="file-cta">
                                 <span class="file-icon">
                                     <i class="fas fa-upload"></i>
@@ -44,9 +44,12 @@
                         <input class="input" type="number" value="12" min="1" required name="suruseg" id="suruseg">
                     </div>
                 </div>
-                <br><hr>
-            <h2 class="subtitle has-text-dark has-text-center">Valós (mért) adatok feltöltése a MSE és RRMSE tesztek végzéséhez</h2>
-              <p class="has-text-dark">Kérem, töltse fel az előkészített .XLS / .XLSX fájlt, amely a becsült időszakkal megegyező elemszámú adatsort tartalmazza! </p>
+                <hr>
+                <h2 class="subtitle has-text-dark has-text-center">Valós (mért) adatok feltöltése az előrejelzési modell készítéséhez</h2>
+                <label for="sameFile">Ugyanaz a fájl</label>
+                <input type="checkbox"  name="sameFile" id="sameFile" value="1">
+            <div id="testFileField">
+            <p class="has-text-dark">Kérem, töltse fel az előkészített .XLS / .XLSX fájlt, amely a becsült időszakkal megegyező elemszámú adatsort tartalmazza! </p>
     
             <div class="field" >
                 <div class="file has-name is-boxed" >
@@ -66,12 +69,12 @@
                         </span>
                     </label>
                 </div>
-                <label class="label" for="startRow">Mi a munkalap neve?</label>
-                <div class="control">
-                    <input class="input" placeholder="teszt" type="text"  required name="tesztSheetName" id="tesztSheetName">
-                </div>
             </div>
-
+            </div>
+            <label class="label" for="startRow">Mi a munkalap neve?</label>
+                <div class="control">
+                    <input class="input" value="{{request.session.tesztSheetName}}" type="text"  required name="tesztSheetName" id="tesztSheetName">
+                </div>
                 <div class="field">
                     <div class="control">
                         <button type="submit" class="button is-primary">Feltöltés</button>
@@ -86,12 +89,26 @@
         const fileInput2 = document.getElementById('file_teszt');
         const fileNameLabel = document.getElementById('fileNameLabel');
         const fileNameLabel2 = document.getElementById('fileNameLabel2');
+        const sameFile = document.getElementById('sameFile');
+        const testFileField = document.getElementById('testFileField');
 
         fileInput.addEventListener('change', function() {
             if (fileInput.files.length > 0) {
                 fileNameLabel.textContent = fileInput.files[0].name;
             } else {
                 fileNameLabel.textContent = 'Nincs kiválasztott fájl.';
+            }
+        });
+
+        sameFile.addEventListener('change', function() {
+            if(sameFile.checked ){
+                testFileField.style.display = 'none';
+                testFileField.style.height = '0px';
+            }
+            else
+            {
+                testFileField.style.display = 'block';
+                testFileField.style.height = '100%';
             }
         });
 
@@ -102,6 +119,8 @@
                 fileNameLabel2.textContent = 'Nincs kiválasztott fájl.';
             }
         });
+
+
     </script>
 </body>
 </html>
