@@ -12,99 +12,97 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .models import Stat
 import statsmodels.api as sm
-from django.shortcuts import redirect, reverse
+from django.contrib import messages
+from django.shortcuts import redirect
 
 
 global statisztikak 
 
 def home(request):
+    messages.error(request, 'Nem lett adatforrás fájl feltöltve!')
     return render(request, 'home.html')
 
-def statistics(request):
-    if 'file' not in request.FILES:
+def upload(request):
+    if 'file' not in request.FILES or 'suruseg' not in request.POST or 'sheet' not in request.POST:
+        messages.error(request, 'Hiányzó paraméter(ek) (sűrűség/munkalap nevek)!')
         return redirect('home')
 
     uploaded_file = request.FILES['file']
     suruseg = int(request.POST['suruseg'])
     sheetName = request.POST['sheet']
-    adatsorok = []     # kétdimenziós lista, az első oszlop utáni oszlopokat (megyék idősorait) tárolja
-    adatsorNevek = []  # az oszlopok fejlécei, pl. a megyék nevei
-    idoPontok = []     # a legelső oszlop, a megfigyelések időpontjait tárolja
-    teszt_adatok = None
-    
+
+    adatsorok, adatsorNevek, idoPontok, teszt_adatok = [], [], [], None
+
     if 'sameFile' in request.POST:
-         teszt_adatok =  request.FILES['file']
-    else:
-        if 'file_teszt' not in request.FILES:
-            return redirect('home')
-        teszt_adatok =  request.FILES['file_teszt'] # az előrejelzett adatokkal fogjuk összehasonlítani
+        teszt_adatok = request.FILES['file']
+
+    elif 'file_teszt' not in request.FILES:
+        messages.error(request, 'Nem lett adatforrás fájl feltöltve az előrjelzésekhez!')
+        return redirect('home')
     
+    else:
+        teszt_adatok = request.FILES['file_teszt']
+
     tesztSheetName = request.POST['tesztSheetName']
-    global beolvasott_teszt_idoszakok
-    df_teszt = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
-    fejlec = df_teszt.columns.tolist()
-    beolvasott_teszt_idoszakok = df_teszt[fejlec[0]].tolist()
 
     try:
-        global df
+        df_teszt = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
+        global beolvasott_teszt_idoszakok
+        beolvasott_teszt_idoszakok = df_teszt[df_teszt.columns[0]].tolist()
+
         df = pd.read_excel(uploaded_file, sheet_name=sheetName)
         fejlec = df.columns.tolist()
         idoPontok = df[fejlec[0]].tolist()
-        print(idoPontok)
-        for i in range(len(fejlec)):
-            if i > 0:
-                adatsorNevek.append(fejlec[i])
-                adatsorok.append(df[fejlec[i]].tolist())
 
-        data_rows = []
-        for i in range(len(idoPontok)):
-            data_row = {'idoPont': idoPontok[i], 'adatsorok': [adatsor[i] for adatsor in adatsorok]}
-            data_rows.append(data_row)
+        for i, col in enumerate(fejlec[1:]):
+            adatsorNevek.append(col)
+            adatsorok.append(df[col].tolist())
+
+        data_rows = [{'idoPont': ido, 'adatsorok': [adatsor[i] for adatsor in adatsorok]} for i, ido in enumerate(idoPontok)]
         
-        diagram = AbrazolEgyben(adatsorok, idoPontok, adatsorNevek, suruseg)
+        diagram = AbrazolEgyben(adatsorok, idoPontok, adatsorNevek, suruseg, "Székelyföld munkanélküliségi rátái", "")
         diagram = base64.b64encode(diagram.read()).decode('utf-8')
 
         global statisztikak
+        statisztikak = createStatObjects(adatsorNevek, adatsorok, idoPontok)
 
-        statisztikak = createStatObjects(adatsorNevek, adatsorok, idoPontok)                                                  # és azok eltárolása egy listában
-    
-        for megye in statisztikak:      #a megyék acf és pacf teszt diagramjainak generáltatása
+        for megye in statisztikak:
             megye.plot_acf_and_pacf()
 
         teszt_adatok_df = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
         for i in statisztikak:
             for j in fejlec:
-                if(i.megye_nev == j) :
-                   i.setTesztAdatok(teszt_adatok_df[j].tolist())
-            print(i.teszt_adatok)
-        
+                if i.megye_nev == j:
+                    i.setTesztAdatok(teszt_adatok_df[j].tolist())
 
-        return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak':statisztikak, 'diagram': diagram})
+        return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
 
     except pd.errors.ParserError:
         print(traceback.format_exc())
         return HttpResponse("Helytelen fájl!", status=400)
 
 
-def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, y_min=None, y_max=None, y_step=None): 
-    utolso_ev_ho = idoszakok[-1] 
-    elso_ev_ho = idoszakok[0]
-    
-    plt.figure(figsize=(15, 7))
-    for i, megye in enumerate(megyek): 
-        plt.plot(idoszakok, adatok[i], label=megye)
+import traceback
+import io
+import matplotlib.pyplot as plt
+import numpy as np
 
-    plt.xlabel('Időszak')
-    plt.ylabel('Munkanélküliségi ráta (%)')
-    plt.title(f"Székelyföldi megyék Munkanélküliségi rátái {elso_ev_ho} - {utolso_ev_ho} között")
+def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None): 
+    plt.figure(figsize=(15, 7))
+    
+    for i, megye in enumerate(megnevezesek): 
+        plt.plot(idoszakok, adatsorok[i], label=megye)
+
+    plt.ylabel(yFelirat)
+    plt.title(f"{Cim} {idoszakok[0]} - {idoszakok[-1]} között")
     plt.grid(True)
 
     try:
         plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
-    except:
-        print(traceback.format_exc())
-    
-    if y_min is not None and y_max is not None and y_step is not None:
+    except Exception as e:
+        print(f"Error: {e}")
+
+    if all((y_min, y_max, y_step)):
         plt.yticks(np.arange(y_min, y_max, y_step))
     
     plt.legend()
@@ -113,6 +111,7 @@ def AbrazolEgyben(adatok, idoszakok, megyek, suruseg, y_min=None, y_max=None, y_
     plt.savefig(buffer, format="png")
     buffer.seek(0)  
     return buffer
+
     
 
 def createStatObjects(megyek, adatok, idoPontok):
@@ -174,25 +173,22 @@ def arima(request):
                     eredeti_adatsorok.append(megye.teszt_adatok)
         
 
-        diagram = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, megyek, 1, 2, 5, 0.5)
-        diagram = base64.b64encode(diagram.read()).decode('utf-8')
+        diagaram_teszt = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, megyek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+        diagaram_teszt = base64.b64encode(diagaram_teszt.read()).decode('utf-8')
 
-        diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, beolvasott_teszt_idoszakok, megyek, 1, 2, 5, 0.5)
+        diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, beolvasott_teszt_idoszakok, megyek, 1, "Székelyföld mért munkanélküliségi rátái", "", 2, 5, 0.5)
         diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
             
-        return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagram": diagram, "diagram_eredeti": diagram_eredeti})
+        return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagaram_teszt": diagaram_teszt, "diagram_eredeti": diagram_eredeti})
     
     except:
         print(traceback.format_exc())
         return redirect('home')
 
 def download(request):
-    file_path = 'model_summary.txt'  # Az aktuális fájl elérési útvonala
+    file_path = 'model_summary.txt'
     with open(file_path, 'rb') as file:
         response = HttpResponse(file.read(), content_type='application/force-download')
         response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
         return response
 
-
-def mse(request):
-    return render(request, "arimaForecasts.html")

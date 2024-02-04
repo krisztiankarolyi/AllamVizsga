@@ -14,7 +14,16 @@
         <div class="container">
             <h1 class="title has-text-white has-text-center">Statisztikai elemzés és előrejelzés</h1>
             <h2 class="has-text-white">Kérem, töltse fel az előkészített .XLS / .XLSX fájlt</h2>
-            <form action="{% url 'statistics' %}" method="post" enctype="multipart/form-data" class="has-background-grey-light p-4">
+            {% if messages %}
+            <div style="color: red;"">
+                {% for message in messages %}
+                    {% if forloop.first %}
+                       <i>utolsó hiba: {{ message }} </i>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+            <form action="{% url 'upload' %}" method="post" enctype="multipart/form-data" class="has-background-grey-light p-4">
                 {% csrf_token %}
                 <div class="field">
                     <div class="file has-name is-boxed">

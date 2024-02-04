@@ -14,23 +14,17 @@ import io
 
 class Stat :
     megye_nev = ""
-    adf = {}
-    kpss = {}
+    adf = {}; kpss = {}
     atlag = szoras = varriancia = median = min = max = 0.0
     minDatum = maxDatum = ""
-    adatok = []
-    teszt_adatok = []
-    teszt_idoszakok = []
-    becslesek = []
+    adatok = []; teszt_adatok = []; teszt_idoszakok = []; idoszakok = []; becslesek = []
     mse = 0; rrmse = 0
-    title = ""
-    pacf_acf_Diagram  = ""
+    title = ""; pacf_acf_Diagram  = ""
     
-
     def __init__(self, megye_nev, adatok, idoPontok):
         self.megye_nev = megye_nev
         self.adatok = adatok
-
+        self.idoszakok = idoPontok
         self.atlag = round(np.mean(adatok), 2)
         self.szoras = round(np.std(adatok), 2)
         self.variancia = round(np.var(adatok), 2)
@@ -42,11 +36,10 @@ class Stat :
         self.adf = {}; self.kpss = {}
         self.aic = 0
         self.Stationarity()
+        print(self.SeasonsAvg())
     
-
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
-
 
     def MSE(self):
         try:
@@ -63,8 +56,6 @@ class Stat :
         try:
             mse = self.MSE()
             mean_y = np.mean(self.teszt_adatok)
-            
-            # Ellenőrizze, hogy a gyök alatt lévő kifejezés értéke negatív-e
             if mse < 0 or mean_y <= 0:
                 self.rrmse = np.sqrt(-1*(mse)) / mean_y
             else:  
@@ -75,25 +66,21 @@ class Stat :
             print(e)
             return -1
 
-    
     def Stationarity(self):
         adf_result = adfuller(self.adatok)
         self.adf["adf_stat"] = round(adf_result[0], 2)
         self.adf["p_value"] = round(adf_result[1], 2)
-        self.adf["critical_values"] = {1: 0, 5:0, 10: 0}
 
-        self.adf["critical_values"]['1'] = round(adf_result[4]["1%"], 2)
+        self.adf["critical_values"] = {'5':0}
         self.adf["critical_values"]['5'] = round(adf_result[4]["5%"], 2)
-        self.adf["critical_values"]['10'] = round(adf_result[4]["10%"], 2)
 
         kpss_result = kpss(self.adatok)
         self.kpss["kpss_stat"] = round(kpss_result[0], 2)
         self.kpss["p_value"] = round(kpss_result[1], 2)
 
-        self.kpss["critical_values"] = {1: 0, 5:0, 10: 0}
-        self.kpss["critical_values"]['1'] = round( kpss_result[3]["1%"],2)
+        self.kpss["critical_values"] = {'5':0}
         self.kpss["critical_values"]['5'] = round(kpss_result[3]["5%"], 2)
-        self.kpss["critical_values"]['10'] = round(kpss_result[3]["10%"], 2)
+
 
     def AR(self, p: int, t:int):
         try:
@@ -108,7 +95,30 @@ class Stat :
         
         except Exception as e:
             print(e)
-    
+
+    def SeasonsAvg(self) -> dict:
+        """returns a dictionary with total averages of the dataset for each season (winter, spring, summer, autumn)"""
+
+        averages = {"winter": 0, "spring": 0, "summer": 0, "autumn": 0}
+        winterCount = springCount = summerCount = AutumnCount = 0
+
+        for i in range(len(self.adatok)):
+            if "december" in self.idoszakok[i] or "január" in self.idoszakok[i] or "február" in self.idoszakok[i]:
+                averages["winter"] += self.adatok[i]
+                winterCount+=1
+            elif "március" in self.idoszakok[i] or "április" in self.idoszakok[i] or "május" in self.idoszakok[i]:
+                averages["spring"] += self.adatok[i]
+                springCount+=1
+            elif "június" in self.idoszakok[i] or "július" in self.idoszakok[i] or "augusztus" in self.idoszakok[i]:
+                averages["summer"] += self.adatok[i]
+                summerCount+=1
+            elif "szeptember" in self.idoszakok[i] or "október" in self.idoszakok[i] or "november" in self.idoszakok[i]:
+                averages["autumn"] += self.adatok[i]
+                AutumnCount+=1
+
+        averages["winter"] /= winterCount; averages["spring"] /= springCount; averages["summer"] /= summerCount; averages["autumn"] /= AutumnCount
+        return averages
+        
     def MA(self, q: int, t:int):
         try:
             q = int(q)
@@ -129,8 +139,7 @@ class Stat :
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, 0, q))
             model_fit = model.fit()
-            
-            # Módosítás: Csak a tesztadatok méretéig számoljuk ki a becsléseket
+
             self.becslesek = [round(value, 2) for value in model_fit.forecast(t)]
             self.aic = model_fit.aic
 
@@ -166,14 +175,3 @@ class Stat :
         buffer.seek(0)
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
-
-    @classmethod
-    def from_json(cls, json_str):
-        data = json.loads(json_str)
-        return cls(**data)
-
-class StatEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Stat):
-            return obj.__dict__
-        return super().default(obj)
