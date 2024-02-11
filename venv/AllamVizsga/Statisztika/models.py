@@ -13,14 +13,6 @@ import json
 import io
 
 class Stat :
-    megye_nev = ""
-    adf = {}; kpss = {}
-    atlag = szoras = varriancia = median = min = max = 0.0
-    minDatum = maxDatum = ""
-    adatok = []; teszt_adatok = []; teszt_idoszakok = []; idoszakok = []; becslesek = []
-    mse = 0; rrmse = 0
-    title = ""; pacf_acf_Diagram  = ""
-    
     def __init__(self, megye_nev, adatok, idoPontok):
         self.megye_nev = megye_nev
         self.adatok = adatok
@@ -148,8 +140,6 @@ class Stat :
         except Exception as e:
             print(e)
         
-        except Exception as e:
-            print(e)
     
     def ARIMA(self, p:int, d: int, q: int, t:int):
         try:
