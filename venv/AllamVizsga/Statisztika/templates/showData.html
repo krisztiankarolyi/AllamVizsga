@@ -7,6 +7,29 @@
     <title>Adatok Megjelenítése</title>
     <style>
         img:hover{border: 2px solid crimson;}
+
+    .kepek {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        overflow: scroll;
+    }
+
+    .kepek .kep {
+        margin: 10px;  
+    }
+
+    @media screen and (max-width: 600px) {
+        .kepek {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+        .kepek .kep {
+            width: 90%;
+        }
+    }
+
     </style>
 </head>
 
@@ -177,15 +200,15 @@
             <hr>
             <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
              <br>
-            <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; align-content: center;">
+             <div class="kepek">
                 {% for megye in statisztikak %}
-                <div id="acfpacf" class="has-text-centered">
-                    <a target="_blank" href="data:image/png;base64,{{ megye.pacf_acf_Diagram }}">
-                        <img src="data:image/png;base64,{{ megye.pacf_acf_Diagram }}" alt="ACF és PACF teszt" style="height: 300px;">
-                    </a>
-                </div>
-               {% endfor %}
-                
+                    <div id="acfpacf" class="has-text-centered">
+                        <a target="_blank" href="data:image/png;base64,{{ megye.pacf_acf_Diagram }}">
+                            <img src="data:image/png;base64,{{ megye.pacf_acf_Diagram }}" alt="ACF és PACF teszt" class="kep">
+                        </a>
+                    </div>
+                {% endfor %}
+
             </div>
                  
         </div>
