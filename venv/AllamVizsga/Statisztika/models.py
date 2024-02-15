@@ -32,12 +32,20 @@ class Stat :
         self.maxDatum = idoPontok[list.index(adatok, self.max)]
         self.adf = {}; self.kpss = {}
         self.aic = 0
+        self.teszt_idoszakok = []
         self.Stationarity()
+        self.MLPDiagram = None
         print(self.SeasonsAvg())
 
     
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
+    
+    def setTesztIdoszakok(self, idoszakok: list):
+        self.teszt_idoszakok = idoszakok
+
+    def setMLPDiagram(self, diagram):
+        self.MLPDiagram = diagram
 
     def MSE(self):
         try:
@@ -78,7 +86,6 @@ class Stat :
 
         self.kpss["critical_values"] = {'5':0}
         self.kpss["critical_values"]['5'] = round(kpss_result[3]["5%"], 2)
-
 
     def AR(self, p: int, t:int):
         try:
@@ -145,8 +152,7 @@ class Stat :
         
         except Exception as e:
             print(e)
-        
-    
+           
     def ARIMA(self, p:int, d: int, q: int, t:int):
         try:
             p = int(p); q = int(q); d = int(d)
@@ -172,7 +178,6 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
 
-
     def predict_with_mlp(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
@@ -186,11 +191,13 @@ class Stat :
         self.mlp_model.train_model(X_train, y_train)
 
         self.mlp_model.predictions = self.mlp_model.predict(X_test)
+        self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
 
 class MLP:
     def __init__(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
         self.normalize = normalize
         self.hidden_layers = hidden_layers
+        self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
         self.random_state = random_state
         self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, max_iter=max_iters, random_state=random_state)

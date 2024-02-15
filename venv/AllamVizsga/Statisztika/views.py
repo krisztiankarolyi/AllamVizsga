@@ -15,7 +15,6 @@ import statsmodels.api as sm
 from django.contrib import messages
 from django.shortcuts import redirect
 
-
 global statisztikak 
 
 def home(request):
@@ -71,6 +70,7 @@ def upload(request):
             for j in fejlec:
                 if i.megye_nev == j:
                     i.setTesztAdatok(teszt_adatok_df[j].tolist()) 
+                    i.setTesztIdoszakok(beolvasott_teszt_idoszakok)
 
         return render(request, 'upload.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
     
@@ -79,10 +79,6 @@ def upload(request):
         return HttpResponse("Helytelen fájl!", status=400)
 
 
-import traceback
-import io
-import matplotlib.pyplot as plt
-import numpy as np
 
 def BoxJenkins(request):
     global statisztikak
@@ -91,23 +87,35 @@ def BoxJenkins(request):
     return render(request, 'Box-Jenkins.html', {'statisztikak': statisztikak})
 
 def MLP(request):
-    global statisztikak
-    return render(request, 'MLP.html', {'statisztikak': statisztikak})
+    try: 
+        global statisztikak
+        return render(request, 'MLP.html', {'statisztikak': statisztikak})
+    except Exception as e:
+        print(traceback.format_exc())
+        return HttpResponse("Hiba történt. "+e)
 
 def MLPResults(request):
- 
+    try:
         global statisztikak
         for megye in statisztikak:
-            normalize = request.POST[megye.megye_nev+'_normalize']
+            normalize = False
+            if  megye.megye_nev+'_normalize' in request.POST:
+                normalize = True
+
             maxIters = request.POST[megye.megye_nev+'_max_iters']
             randomState = request.POST[megye.megye_nev+'_random_state']
             hidden_layers = tuple(map(int, request.POST[megye.megye_nev+'_hidden_layers'].split(',')))
-
             megye.predict_with_mlp(normalize, hidden_layers, int(maxIters), int(randomState))  
-        return HttpResponse("Done")  
+            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.megye_nev+" becsült", megye.megye_nev+" mért"], 1, megye.megye_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+            diagram = base64.b64encode(diagram.read()).decode('utf-8')
+            megye.setMLPDiagram(diagram)
 
-
-
+        return render(request, 'MLPForecasts.html', {'statisztikak': statisztikak})
+        
+    except Exception as e:
+        print(traceback.format_exc())
+        return HttpResponse("Hiba történt")
+    
 def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None): 
     plt.figure(figsize=(15, 7))
     
@@ -133,15 +141,12 @@ def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat=
     buffer.seek(0)  
     return buffer
 
-    
-
 def createStatObjects(megyek, adatok, idoPontok):
     eredmenyek = []
     for i in range(len(megyek)):
         statisztika = Stat(megyek[i], adatok[i], idoPontok)
         eredmenyek.append(statisztika)
     return eredmenyek
-
 
 def arima(request):
     try: 
