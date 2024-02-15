@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-tooltip@0.10.0/bulma-tooltip.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-switch@0.9.0/bulma-switch.min.css">
+        <title>Adatok feltöltve</title>
+    </head>
+    <body class="has-background-dark" style="min-height: 100vh;">
+        <div style="max-width: 800px; width: 90%; margin: auto">
+            <h2 class="title has-text-light">Adatok feltöltve, kérem válasszon egy opciót az előrejelzéshez!</h2>
+            <div style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: space-evenly;">
+                <form method="POST" action="{% url 'Box-Jenkins' %}">
+                    {% csrf_token %}
+                    <input class="button is-primary" type="submit" value="Box-Jenkins eljárás" >
+                </form>
+            
+                <form method="POST" action="{% url 'MLP' %}">
+                    {% csrf_token %}
+                    <input class="button is-primary" type="submit" value="Neuronháló" >
+                </form>
+            </div>
+            <hr>
+            <h1 class="title has-text-white has-text-centered">Beolvasott Adatok</h1>
+            <div class="container has-background-dark has-text-light" style="max-height: 33vh; min-height: 33vh; overflow-y: scroll; min-width: 100%;">
+                <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
+                    <tbody>
+                        <tr>
+                            <th class="has-background-grey-dark has-text-light">dátum</th>
+                            {% for nev in adatsorNevek %}
+                                <th class="has-background-grey-dark has-text-light">{{nev}}</th>
+                            {% endfor %}
+                        </tr>
+                        {% for data_row in data_rows %}
+                        <tr>
+                            <td>{{ data_row.idoPont }}</td>
+                            {% for adatsor in data_row.adatsorok %}
+                            <td>{{ adatsor }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}           
+                </div>
+                </table>
+            </div>
+
+            <h2 class="subtitle has-text-white has-text-centered">Diagram</h2>
+            <hr>
+            <div id="diagram" class="has-text-centered">
+              <img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;">
+            </div>
+
+        </div>
+    </body>
+</html>

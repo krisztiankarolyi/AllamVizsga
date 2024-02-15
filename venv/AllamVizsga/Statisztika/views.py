@@ -66,17 +66,14 @@ def upload(request):
         global statisztikak
         statisztikak = createStatObjects(adatsorNevek, adatsorok, idoPontok)
 
-        for megye in statisztikak:
-            megye.plot_acf_and_pacf()
-
         teszt_adatok_df = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
         for i in statisztikak:
             for j in fejlec:
                 if i.megye_nev == j:
-                    i.setTesztAdatok(teszt_adatok_df[j].tolist())
+                    i.setTesztAdatok(teszt_adatok_df[j].tolist()) 
 
-        return render(request, 'showData.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
-
+        return render(request, 'upload.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
+    
     except pd.errors.ParserError:
         print(traceback.format_exc())
         return HttpResponse("Helytelen fájl!", status=400)
@@ -86,6 +83,30 @@ import traceback
 import io
 import matplotlib.pyplot as plt
 import numpy as np
+
+def BoxJenkins(request):
+    global statisztikak
+    for megye in statisztikak:
+        megye.plot_acf_and_pacf()
+    return render(request, 'Box-Jenkins.html', {'statisztikak': statisztikak})
+
+def MLP(request):
+    global statisztikak
+    return render(request, 'MLP.html', {'statisztikak': statisztikak})
+
+def MLPResults(request):
+ 
+        global statisztikak
+        for megye in statisztikak:
+            normalize = request.POST[megye.megye_nev+'_normalize']
+            maxIters = request.POST[megye.megye_nev+'_max_iters']
+            randomState = request.POST[megye.megye_nev+'_random_state']
+            hidden_layers = tuple(map(int, request.POST[megye.megye_nev+'_hidden_layers'].split(',')))
+
+            megye.predict_with_mlp(normalize, hidden_layers, int(maxIters), int(randomState))  
+        return HttpResponse("Done")  
+
+
 
 def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None): 
     plt.figure(figsize=(15, 7))
@@ -179,6 +200,7 @@ def arima(request):
         diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, beolvasott_teszt_idoszakok, megyek, 1, "Székelyföld mért munkanélküliségi rátái", "", 2, 5, 0.5)
         diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
             
+          
         return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagaram_teszt": diagaram_teszt, "diagram_eredeti": diagram_eredeti})
     
     except:

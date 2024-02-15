@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <title>Adatok Megjelenítése</title>
+    <style>
+        img:hover{border: 2px solid crimson;}
+
+    .kepek {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        overflow: scroll;
+    }
+
+    .kepek .kep {
+        margin: 10px;  
+    }
+
+    @media screen and (max-width: 600px) {
+        .kepek {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+        .kepek .kep {
+            width: 90%;
+        }
+    }
+
+    </style>
+</head>
+
+<body class="has-background-dark has-text-light" style=" min-height: 100vh;">
+    <section class="section has-background-dark has-text-light" style=" max-width: 1000px; margin: auto;">
+        <h2 class="subtitle has-text-white has-text-centered">Statisztikai mutatók</h2>
+        <hr>
+        <div class="table-container  is-fullwidth">
+            <table class="table is-bordered is-fullwidth" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th  class="has-background-info has-text-light">mutató/megye</th>
+                        {% for stat in statisztikak %}
+                            <th  class="has-background-info has-text-light" >{{ stat.megye_nev }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Átlag</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.atlag }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td >Szórás</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.szoras }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Variancia</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.variancia }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Medián</td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.median }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Minimum</td>
+                        {% for stat in statisztikak %}
+                        <td> 
+                            <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.min}}%</i>  
+                                <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.minDatum}}</i>
+                            </div>                    
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>Maximum</td>
+                        {% for stat in statisztikak %}
+                        <td> 
+                            <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.max}}%</i>  
+                                <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.maxDatum}}</i>
+                            </div>                    
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <td>
+                            téli átlag
+                        </td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.SeasonsAvg.winter | floatformat:2 }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>
+                            tavaszi átlag
+                        </td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.SeasonsAvg.spring | floatformat:2 }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>
+                             nyári átlag
+                        </td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.SeasonsAvg.summer | floatformat:2 }}%</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td>
+                            őszi átlag
+                        </td>
+                        {% for stat in statisztikak %}
+                            <td>{{ stat.SeasonsAvg.autumn | floatformat:2 }}%</td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+            <hr>
+            
+            <h1>Stacionaritás tesztek (ADF és KPSS)</h1>
+            <div style="overflow-x: auto;">
+                <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%; overflow-x: scroll;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2"></th>
+                            <th colspan="3" class="has-text-centered">ADF</th>
+                            <th colspan="3" class="has-text-centered">KPSS</th>
+                        </tr>
+                        <tr style="font-size: 0.9rem;">
+                            <th>Statisztika</th>
+                            <th>p-érték</th>
+                            <th>Kritikus Érték (5%)</th>
+                            <th>Statisztika</th>
+                            <th>p-érték</th>
+                            <th>Kritikus Érték (5%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for megye in statisztikak %}
+                        <tr>
+                            <td>{{ megye.megye_nev }}</td>
+
+                            <td>{{ megye.adf.adf_stat }}</td>
+                            <td>{{ megye.adf.p_value }}</td>
+                            <td>{{ megye.adf.critical_values.5 }}</td>
+
+                            <td>{{ megye.kpss.kpss_stat }}</td>
+                            <td>{{ megye.kpss.p_value }}</td>
+                            <td>{{ megye.kpss.critical_values.5 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+            </div>
+
+            <hr>
+            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
+             <br>
+             <div class="kepek">
+                {% for megye in statisztikak %}
+                    <div id="acfpacf" class="has-text-centered">
+                        <a target="_blank" href="data:image/png;base64,{{ megye.pacf_acf_Diagram }}">
+                            <img src="data:image/png;base64,{{ megye.pacf_acf_Diagram }}" alt="ACF és PACF teszt" class="kep">
+                        </a>
+                    </div>
+                {% endfor %}
+
+            </div>
+                 
+        </div>
+    </section><hr>
+
+    <section id="arima" style="max-width: 800px; margin: auto; width: 90%;">
+        <h1 class="title has-text-centered has-text-light">
+            ARIMA modellek beállítása teszteléshez és előrejelzéshez
+        </h1>
+        <p class="has-text-justified">A fenti ACF és PACF tesztek alapján itt lehet próbálkozni különböző idősor modellekkel.
+            A gomb megnyomását követően egy szöveges (txt) fájl kerül letöltésre, amely minden adatsort esetén a modell mutatóit és előrejelzéseit tartalmazza.
+        </p>
+        <hr>
+        <form action="{% url 'arima' %}" method="POST">
+            {% csrf_token %}
+        {% for megye in statisztikak %}
+            <h3 class="has-text-centered subtitle has-text-light">{{ megye.megye_nev }}</h3>
+                <label for="{{ megye.megye_nev }}_p">p</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_p" id="{{ megye.megye_nev }}_p"> 
+                <label for="{{ megye.megye_nev }}_d">d </label>
+                <input class="input" type="number" value="0" min="0" required name="{{ megye.megye_nev  }}_d" id="{{ megye.megye_nev }}_d">
+                <label for="{{ megye.megye_nev }}_q">q</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_q" id="{{ megye.megye_nev }}_q">
+                <br><br>
+                <div style="display: flex; flex-direction: row; align-items:center; justify-content: space-between;">
+                <div>
+                    <label for="{{ megye.megye_nev }}_ar">AR(p)</label>
+                    <input type="radio" checked name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ar" value="ar"> &nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="{{ megye.megye_nev }}_ma">MA(q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ma" value="ma">&nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="{{ megye.megye_nev }}_arma">ARMA(p, q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arma" value="arma">&nbsp;&nbsp;&nbsp;
+                </div>
+                <div>
+                    <label for="{{ megye.megye_nev }}_arima">ARIMA(p,d, q)</label>
+                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arima" value="arima">
+                </div>
+                </div>
+                <br><br>
+        {% endfor %}
+            <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
+            <input type="submit" class="button is-info" style="width: 100%;" value="ARIMA előrejelzések készítése">
+        </form>
+        <br><br>
+    </section>
+</div>
+
+
+</body>
+</html>

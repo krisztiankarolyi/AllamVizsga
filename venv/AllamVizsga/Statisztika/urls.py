@@ -5,6 +5,9 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('upload', views.upload, name='upload'),
     path('arima', views.arima, name='arima'),
-    path('download/', views.download, name='download_model'),
+    path('Box-Jenkins', views.BoxJenkins, name="Box-Jenkins"),
+    path('MLP', views.MLP, name="MLP"),
+    path('MLPResults', views.MLPResults, name="MLPResults"),
+    path('download/', views.download, name='download_model')
 
 ]

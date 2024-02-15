@@ -11,6 +11,11 @@ from statsmodels.tsa.stattools import kpss
 import base64
 import json
 import io
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+from sklearn.neural_network import MLPRegressor
 
 class Stat :
     def __init__(self, megye_nev, adatok, idoPontok):
@@ -29,6 +34,7 @@ class Stat :
         self.aic = 0
         self.Stationarity()
         print(self.SeasonsAvg())
+
     
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
@@ -165,3 +171,38 @@ class Stat :
         buffer.seek(0)
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
+
+
+    def predict_with_mlp(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
+        if not self.teszt_adatok:
+            print("Nincsenek tesztelési adatok.")
+            return
+    
+        X_train = np.arange(1, len(self.adatok) + 1).reshape(-1, 1)
+        y_train = np.array(self.adatok)
+        X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
+
+        self.mlp_model = MLP(normalize, hidden_layers, max_iters, random_state)
+        self.mlp_model.train_model(X_train, y_train)
+
+        self.mlp_model.predictions = self.mlp_model.predict(X_test)
+
+class MLP:
+    def __init__(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
+        self.normalize = normalize
+        self.hidden_layers = hidden_layers
+        self.max_iters = max_iters
+        self.random_state = random_state
+        self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, max_iter=max_iters, random_state=random_state)
+        self.scaler = StandardScaler()
+        self.predictions = []
+
+    def train_model(self, X_train, y_train):
+        if self.normalize:
+            X_train = self.scaler.fit_transform(X_train)
+        self.model.fit(X_train, y_train)
+
+    def predict(self, X_test):
+        if self.normalize:
+            X_test = self.scaler.transform(X_test)
+        return self.model.predict(X_test)
