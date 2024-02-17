@@ -7,58 +7,98 @@
     <title>ARIMA előrejelzések</title>
     <style>
         img:hover{border: 2px solid crimson;}
+        .tables{
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            align-items: stretch;
+        }
+
+        .tables table{
+            width: 30%;
+            height: 100%;
+        }
+
+        @media screen and (max-width: 600px) {
+            .tables{
+                flex-direction: column;
+                flex-wrap: wrap;
+                margin: auto;
+            }
+
+            .tables table{
+            width: 100%;
+            height: 100%;
+        }
+        }
     </style>
 </head>
 <br>
 <body class="has-background-dark has-text-light" style=" min-height: 100vh;">
-    <p style="text-align: center; margin: auto;">
-        <a style="background-color:darkmagenta; color: white; margin: auto; width: 90%; max-width: 1000px; display: block; border-radius: 10px; padding: 10px 5px;  font-size: 1.2rem; text-decoration: none;" href="{% url 'download_model' %}">
-            A modellek elemzéseinek letöltése</a>
-    </p>
-     <br>
-    
-    <div class="container" style="max-width: 1000px; width: 90%;">
+    <div class="container" style="max-width: 1000px; width: 100%;">
         <div class="container" style="max-width: 1000px; ">
-            <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light">
-                <thead>
+            
+            <div class="tables">
+                {% for megye in statisztikak %}
+                    <!-- Táblázat a becslésekhez és mért adatokhoz -->
+                    <table class="table is-bordered">
+                        <thead class="has-background-info">
+                            <tr>
+                                <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.model}}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Becslések</th>
+                                <th>Valódi adatok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for becsles, mertadat in megye.ARIMAbecsleseksZipped %}
+                                <tr>
+                                    <td>{{ becsles|floatformat:2 }}</td>
+                                    <td>{{ mertadat|floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                                <tr>
+                                    <td colspan="2">
+                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMADiagram }}">
+                                            <img src="data:image/png;base64,{{ megye.ARIMADiagram }}">
+                                        </a>
+                                    </td>                                    
+                                </tr>
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </div>
+        <br>
+            <!-- Táblázat az ARIMA mutatókhoz -->
+            <table class="table is-bordered" style="width: 100%;">
+                <thead class="has-background-info">
                     <tr>
                         <th>Model</th>
                         <th>AIC</th>
+                        <th>R^2</th>
                         <th>MSE</th>
                         <th>RRMSE</th>
-                        <th>Becslések</th>
-                        <th>Valódi adatok</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for megye in megyek %}
+                    {% for megye in statisztikak %}
                     <tr>
                         <td>{{ megye.model }}</td>
                         <td>{{ megye.aic|floatformat:2 }}</td>
-                        <td>{{ megye.MSE|floatformat:2 }}</td>
-                        <td>{{ megye.RRMSE|floatformat:2 }}</td>
-                        <td>            
-                            {% for becsles in megye.becslesek %}
-                                <i>{{ becsles|floatformat:2 }}, </i>
-                            {% endfor %}
-                        </td>
-                        <td>            
-                            {% for mertadat in megye.teszt_adatok %}
-                                <i>{{ mertadat|floatformat:2 }}, </i>
-                            {% endfor %}
-                        </td>
+                        <td>{{ megye.r_squared }}</td>
+                        <td>{{ megye.mse|floatformat:2 }}</td>
+                        <td>{{ megye.rrmse|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+
         </div>
 
-        <p class="has-text-centered">Becsült adatok</p>
-        <a target="_blank" href="data:image/png;base64,{{ diagaram_teszt }}"><img src="data:image/png;base64,{{ diagaram_teszt }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
+        <a target="_blank" href="data:image/png;base64,{{ diagaramEgyben }}"><img src="data:image/png;base64,{{ diagaramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
         <br>
-        <p class="has-text-centered">Eredeti (mért) adatok</p>
-        <a target="_blank" href="data:image/png;base64,{{ diagram_eredeti }}"><img src="data:image/png;base64,{{ diagram_eredeti }}" alt="Eredeti (mért) adatok grafikonja"  title="Eredeti (mért) adatok grafikonja"style=" height: 30%;"></a>
-        <br><br>
 
     </body>
 </html>

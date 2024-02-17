@@ -1,4 +1,3 @@
-
 import traceback
 from typing import Any
 from django.db import models
@@ -8,6 +7,7 @@ import statsmodels.api as sm
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
+from sklearn.metrics import r2_score
 import base64
 import json
 import io
@@ -18,24 +18,31 @@ import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
 
 class Stat :
-    def __init__(self, megye_nev, adatok, idoPontok):
+    def __init__(self, megye_nev, adatok, idoszakok):
         self.megye_nev = megye_nev
         self.adatok = adatok
-        self.idoszakok = idoPontok
-        self.atlag = round(np.mean(adatok), 2)
-        self.szoras = round(np.std(adatok), 2)
-        self.variancia = round(np.var(adatok), 2)
-        self.median = round(np.median(adatok), 2)
-        self.min = np.min(adatok)
-        self.max = np.max(adatok)
-        self.minDatum = idoPontok[list.index(adatok, self.min)]
-        self.maxDatum = idoPontok[list.index(adatok, self.max)]
+        self.idoszakok = idoszakok
+     
         self.adf = {}; self.kpss = {}
         self.aic = 0
         self.teszt_idoszakok = []
-        self.Stationarity()
+        self.ARIMAbecslesek = []
         self.MLPDiagram = None
-        print(self.SeasonsAvg())
+        self.ARIMADiagram = None
+        self.mse = 0
+        self.rrmse = 0
+        self.r_squared = 0
+
+    def calculateStatistics(self):
+        self.atlag = round(np.mean(self.adatok), 2)
+        self.szoras = round(np.std(self.adatok), 2)
+        self.variancia = round(np.var(self.adatok), 2)
+        self.median = round(np.median(self.adatok), 2)
+        self.min = np.min(self.adatok)
+        self.max = np.max(self.adatok)
+        self.minDatum = self.idoszakok[list.index(self.adatok, self.min)]
+        self.maxDatum = self.idoszakok[list.index(self.adatok, self.max)]
+        self.Stationarity()
 
     
     def setTesztAdatok(self, teszt_adatok: list):
@@ -47,20 +54,22 @@ class Stat :
     def setMLPDiagram(self, diagram):
         self.MLPDiagram = diagram
 
-    def MSE(self):
+    def setARIMADiagram(self, diagram):
+        self.ARIMADiagram = diagram
+
+    def MSE(self, becslesek):
         try:
             n = len(self.teszt_adatok)
             teszt_adatok_np = np.array(self.teszt_adatok)
-            becslesek_np = np.array(self.becslesek)
-            
+            becslesek_np = np.array(becslesek)
             self.mse = np.sum((teszt_adatok_np - becslesek_np)**2) / n
             return self.mse
         except:
             return -1   
-    
-    def RRMSE(self):
+        
+    def RRMSE(self, becslesek):
         try:
-            mse = self.MSE()
+            mse = self.MSE(becslesek)
             mean_y = np.mean(self.teszt_adatok)
             if mse < 0 or mean_y <= 0:
                 self.rrmse = np.sqrt(-1*(mse)) / mean_y
@@ -93,10 +102,14 @@ class Stat :
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, 0, 0))
             model_fit = model.fit()
-            self.becslesek = model_fit.forecast(t)
+            self.ARIMAbecslesek = model_fit.forecast(t)
+            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
             self.aic= model_fit.aic
+            self.mse = self.MSE(self.ARIMAbecslesek)
+            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
+            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
 
-            return ([model_fit.summary(), self.becslesek])
+            return ([model_fit.summary(), self.ARIMAbecslesek])
         
         except Exception as e:
             print(e)
@@ -130,10 +143,13 @@ class Stat :
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(0, 0, q))
             model_fit = model.fit()
-            self.becslesek = model_fit.forecast(t)
+            self.ARIMAbecslesek = model_fit.forecast(t)
             self.aic= model_fit.aic
-
-            return ([model_fit.summary(), self.becslesek])
+            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
+            self.mse = self.MSE(self.ARIMAbecslesek)
+            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
+            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
+            return ([model_fit.summary(), self.ARIMAbecslesek])
         
         except Exception as e:
             print(e)
@@ -144,11 +160,13 @@ class Stat :
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, 0, q))
             model_fit = model.fit()
-
-            self.becslesek = [round(value, 2) for value in model_fit.forecast(t)]
+            self.ARIMAbecslesek = [round(value, 2) for value in model_fit.forecast(t)]
             self.aic = model_fit.aic
-
-            return ([model_fit.summary(), self.becslesek])
+            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
+            self.mse = self.MSE(self.ARIMAbecslesek)
+            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
+            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
+            return ([model_fit.summary(), self.ARIMAbecslesek])
         
         except Exception as e:
             print(e)
@@ -159,10 +177,13 @@ class Stat :
             idosor = self.adatok
             model = sm.tsa.ARIMA(idosor, order=(p, d, q))
             model_fit = model.fit()
-            self.becslesek = model_fit.forecast(t)
+            self.ARIMAbecslesek = model_fit.forecast(t)
             self.aic= model_fit.aic
-
-            return ([model_fit.summary(), self.becslesek])
+            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
+            self.mse = self.MSE(self.ARIMAbecslesek)
+            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
+            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
+            return ([model_fit.summary(), self.ARIMAbecslesek])
    
         except Exception as e:
             print(e)
@@ -192,6 +213,11 @@ class Stat :
 
         self.mlp_model.predictions = self.mlp_model.predict(X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
+        self.mlp_model.r_squared = r2_score(self.teszt_adatok,  self.mlp_model.predictions)
+
+        self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
+        self.mlp_model.rrmse = self.MSE(self.mlp_model.predictions)
+
 
 class MLP:
     def __init__(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
@@ -203,6 +229,9 @@ class MLP:
         self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, max_iter=max_iters, random_state=random_state)
         self.scaler = StandardScaler()
         self.predictions = []
+        self.r_squared = 0
+        self.mse = 0
+        self.rrmse = 0
 
     def train_model(self, X_train, y_train):
         if self.normalize:
@@ -213,3 +242,4 @@ class MLP:
         if self.normalize:
             X_test = self.scaler.transform(X_test)
         return self.model.predict(X_test)
+    

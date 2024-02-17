@@ -83,6 +83,7 @@ def upload(request):
 def BoxJenkins(request):
     global statisztikak
     for megye in statisztikak:
+        megye.calculateStatistics()
         megye.plot_acf_and_pacf()
     return render(request, 'Box-Jenkins.html', {'statisztikak': statisztikak})
 
@@ -110,13 +111,25 @@ def MLPResults(request):
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.setMLPDiagram(diagram)
 
-        return render(request, 'MLPForecasts.html', {'statisztikak': statisztikak})
+        adatsorNevek = []
+        adatsorok = []
+
+        for megye in statisztikak:
+            adatsorNevek.append(megye.megye_nev)
+            adatsorok.append(megye.teszt_adatok)
+            adatsorNevek.append(megye.megye_nev+" MLP")
+            adatsorok.append(megye.mlp_model.predictions)
+
+        diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+        diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+
+        return render(request, 'MLPForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
         
     except Exception as e:
         print(traceback.format_exc())
         return HttpResponse("Hiba történt")
     
-def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None): 
+def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None, grid=False): 
     plt.figure(figsize=(15, 7))
     
     for i, megye in enumerate(megnevezesek): 
@@ -124,7 +137,7 @@ def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat=
 
     plt.ylabel(yFelirat)
     plt.title(f"{Cim} {idoszakok[0]} - {idoszakok[-1]} között")
-    plt.grid(True)
+    plt.grid(grid)
 
     try:
         plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
@@ -150,72 +163,58 @@ def createStatObjects(megyek, adatok, idoPontok):
 
 def arima(request):
     try: 
-        model_summary_file_path = 'model_summary.txt'
-        forecast_file_path = 'arima_forecasts.txt'
+        global beolvasott_teszt_idoszakok
+        megyek = []
+        adatsorok =[] 
 
-        with open(model_summary_file_path, 'w+') as model_summary_file, open(forecast_file_path, 'w+') as forecast_file:
-            global beolvasott_teszt_idoszakok
-            megyek = []
-            adatsorok =[] 
-            eredeti_adatsorok = []
+        for megye in statisztikak:
+            p = request.POST[megye.megye_nev+'_p']
+            q = request.POST[megye.megye_nev+'_q']
+            d = request.POST[megye.megye_nev+'_d']
+            megye.teszt_idoszakok = beolvasott_teszt_idoszakok 
+            tipus = request.POST[megye.megye_nev+'_tipus']
+            test_results = None
+            title = None
+            t = len(beolvasott_teszt_idoszakok)
 
-            for megye in statisztikak:
-                p = request.POST[megye.megye_nev+'_p']
-                q = request.POST[megye.megye_nev+'_q']
-                d = request.POST[megye.megye_nev+'_d']
-                megye.teszt_idoszakok = beolvasott_teszt_idoszakok 
-                tipus = request.POST[megye.megye_nev+'_tipus']
-                test_results = None
-                title = None
-                t = len(beolvasott_teszt_idoszakok)
+            if tipus == "ar":
+                test_results = megye.AR(p, t)
+                title = f"\n{megye.megye_nev} AR({p})\n"
 
-                if tipus == "ar":
-                    test_results = megye.AR(p, t)
-                    title = f"\n{megye.megye_nev} AR({p})\n"
+            elif tipus == "ma":
+                test_results = megye.MA(q, t)
+                title = f"\n{megye.megye_nev} MA({q})\n"
 
-                elif tipus == "ma":
-                    test_results = megye.MA(q, t)
-                    title = f"\n{megye.megye_nev} MA({q})\n"
-
-                elif tipus == "arma":
-                    test_results = megye.ARMA(p, q, t)
-                    title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
-                
-                elif tipus == "arima":
-                    test_results = megye.ARIMA(p, d, q, t)
-                    title = f"\n{megye.megye_nev} ARIMA({p}, {d}, {q})\n"
-
-                if test_results:
-                    model_summary_file.write(f"{'='*40}\n{title}{'='*40}\n")
-                    model_summary_file.write(str(test_results[0]))
-                    model_summary_file.write('\n\n')
-                    model_summary_file.write("Elorejelzett ertekek: "+str(test_results[1]))
-                    megye.model = title
-                    model_summary_file.write('\n\n')
-                    model_summary_file.write('MSE: '+str(megye.MSE())+ "\nRMSE: "+ str(megye.RRMSE())+"\n")
-
-                    megyek.append(megye.megye_nev)
-                    adatsorok.append(megye.becslesek)
-                    eredeti_adatsorok.append(megye.teszt_adatok)
-        
-
-        diagaram_teszt = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, megyek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
-        diagaram_teszt = base64.b64encode(diagaram_teszt.read()).decode('utf-8')
-
-        diagram_eredeti = AbrazolEgyben(eredeti_adatsorok, beolvasott_teszt_idoszakok, megyek, 1, "Székelyföld mért munkanélküliségi rátái", "", 2, 5, 0.5)
-        diagram_eredeti = base64.b64encode(diagram_eredeti.read()).decode('utf-8')
+            elif tipus == "arma":
+                test_results = megye.ARMA(p, q, t)
+                title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
             
-          
-        return render(request, "arimaForecasts.html", {"megyek": statisztikak, "file": model_summary_file_path, "diagaram_teszt": diagaram_teszt, "diagram_eredeti": diagram_eredeti})
+            elif tipus == "arima":
+                test_results = megye.ARIMA(p, d, q, t)
+                title = f"\n{megye.megye_nev} ARIMA({p}, {d}, {q})\n"
+
+            if test_results:
+                megye.model = title
+                megyek.append(megye.megye_nev)
+                adatsorok.append(megye.ARIMAbecslesek)
+                diagram = AbrazolEgyben([megye.ARIMAbecslesek, megye.teszt_adatok], megye.teszt_idoszakok, [megye.model, megye.megye_nev+" mért"], 1, megye.megye_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+                diagram = base64.b64encode(diagram.read()).decode('utf-8')
+                megye.setARIMADiagram(diagram)
     
+        adatsorNevek = []
+        for megye in statisztikak:
+            adatsorNevek.append(megye.megye_nev)
+            adatsorok.append(megye.teszt_adatok)
+            adatsorNevek.append(megye.model)
+            adatsorok.append(megye.ARIMAbecslesek)
+
+        diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+        diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+
+        return render(request, "arimaForecasts.html", {"statisztikak": statisztikak, "diagaramEgyben": diagaramEgyben})
+
     except:
         print(traceback.format_exc())
         return redirect('home')
 
-def download(request):
-    file_path = 'model_summary.txt'
-    with open(file_path, 'rb') as file:
-        response = HttpResponse(file.read(), content_type='application/force-download')
-        response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-        return response
 

@@ -8,6 +8,4 @@ urlpatterns = [
     path('Box-Jenkins', views.BoxJenkins, name="Box-Jenkins"),
     path('MLP', views.MLP, name="MLP"),
     path('MLPResults', views.MLPResults, name="MLPResults"),
-    path('download/', views.download, name='download_model')
-
 ]

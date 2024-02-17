@@ -5,8 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
-    <title>MLP Predictions</title>
+    <title>MLP Előrejelzések</title>
     <style>
+        img:hover{border: 2px solid crimson;}
         .tables{
             display: flex;
             flex-direction: row;
@@ -57,15 +58,40 @@
                             <td>{{ realValue | floatformat:2  }}</td>
                         </tr>
                         {% endfor %}
+                        <tr>
+                            <td colspan="2">
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMADiagram }}">
+                                <img src="data:image/png;base64,{{megye.MLPDiagram}}" style="width: 100%;" > 
+                                </a>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             {% endfor %}
         </div>
         <br>
+        <table class="table is-bordered" style="width: 100%;">
+            <thead class="has-background-info">
+                <tr>
+                    <th>Model</th>
+                    <th>R^2</th>
+                    <th>MSE</th>
+                    <th>RRMSE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for megye in statisztikak %}
+                <tr>
+                    <td>{{ megye.megye_nev }}</td>
+                    <td>{{ megye.mlp_model.r_squared  | floatformat:2 }}</td>
+                    <td>{{ megye.mlp_model.mse | floatformat:2 }}</td>
+                    <td>{{ megye.mlp_model.rrmse |floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         <div>
-            {% for megye in statisztikak %}
-                <img src="data:image/png;base64,{{megye.MLPDiagram}}" style="width: 100%;" > 
-            {% endfor %}
+            <a target="_blank" href="data:image/png;base64,{{ diagramEgyben }}"><img src="data:image/png;base64,{{ diagramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
         </div>
     </div>
 </section>

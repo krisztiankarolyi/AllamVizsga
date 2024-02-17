@@ -26,27 +26,27 @@
             <h1 class="title has-text-white has-text-centered">Beolvasott Adatok</h1>
             <div class="container has-background-dark has-text-light" style="max-height: 33vh; min-height: 33vh; overflow-y: scroll; min-width: 100%;">
                 <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
-                    <tbody>
+                    <thead style="position: sticky; top: 0; z-index: 1;">
                         <tr>
                             <th class="has-background-grey-dark has-text-light">dátum</th>
                             {% for nev in adatsorNevek %}
                                 <th class="has-background-grey-dark has-text-light">{{nev}}</th>
                             {% endfor %}
                         </tr>
+                    </thead>
+                    <tbody>
                         {% for data_row in data_rows %}
-                        <tr>
-                            <td>{{ data_row.idoPont }}</td>
-                            {% for adatsor in data_row.adatsorok %}
-                            <td>{{ adatsor }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}           
-                </div>
+                            <tr>
+                                <td>{{ data_row.idoPont }}</td>
+                                {% for adatsor in data_row.adatsorok %}
+                                    <td>{{ adatsor }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
-
-            <h2 class="subtitle has-text-white has-text-centered">Diagram</h2>
-            <hr>
+        <br>            
             <div id="diagram" class="has-text-centered">
               <img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;">
             </div>

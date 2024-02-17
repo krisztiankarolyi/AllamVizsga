@@ -6,8 +6,8 @@ Kovászna AR(1)
 ==============================================================================
 Dep. Variable:                      y   No. Observations:                  153
 Model:                 ARIMA(1, 0, 0)   Log Likelihood                 -58.955
-Date:                Thu, 15 Feb 2024   AIC                            123.910
-Time:                        16:18:24   BIC                            133.002
+Date:                Sat, 17 Feb 2024   AIC                            123.910
+Time:                        12:19:22   BIC                            133.002
 Sample:                             0   HQIC                           127.603
                                 - 153                                         
 Covariance Type:                  opg                                         
@@ -40,8 +40,8 @@ Hargita AR(1)
 ==============================================================================
 Dep. Variable:                      y   No. Observations:                  153
 Model:                 ARIMA(1, 0, 0)   Log Likelihood                 -61.480
-Date:                Thu, 15 Feb 2024   AIC                            128.959
-Time:                        16:18:24   BIC                            138.050
+Date:                Sat, 17 Feb 2024   AIC                            128.959
+Time:                        12:19:22   BIC                            138.050
 Sample:                             0   HQIC                           132.652
                                 - 153                                         
 Covariance Type:                  opg                                         
@@ -74,8 +74,8 @@ Maros AR(1)
 ==============================================================================
 Dep. Variable:                      y   No. Observations:                  153
 Model:                 ARIMA(1, 0, 0)   Log Likelihood                  -1.824
-Date:                Thu, 15 Feb 2024   AIC                              9.648
-Time:                        16:18:24   BIC                             18.739
+Date:                Sat, 17 Feb 2024   AIC                              9.648
+Time:                        12:19:22   BIC                             18.739
 Sample:                             0   HQIC                            13.341
                                 - 153                                         
 Covariance Type:                  opg                                         
