@@ -25,13 +25,29 @@
                     <label for="{{ stat.nammegye_neve }}_max_iters">Max iterációk száma:</label>
                     <input class="input" type="number" value="1000" min="1" required name="{{ stat.megye_nev }}_max_iters" id="{{ stat.megye_nev }}_max_iters">
                     
-                    <label for="{{ stat.megye_nev }}_random_state">Random állapot (opcionális):</label>
-                    <input class="input" type="number" value="50" min="1" name="{{ stat.megye_nev }}_random_state" id="{{ stat.megye_nev }}_random_state">
-                    
-                    <label for="{{ stat.megye_nev }}_normalize">Normalizálás:</label>
-                    <input type="checkbox" checked name="{{ stat.megye_nev }}_normalize" id="{{ stat.megye_nev }}_normalize" value="True">
+                    <label for="{{ stat.megye_nev }}_random_state_min">Random állapot kezdőérték:</label>
+                    <input class="input" type="number" value="42" min="1" max="100" name="{{ stat.megye_nev }}_random_state_min" id="{{ stat.megye_nev }}_random_state_min">
+                   
+                    <label for="{{ stat.megye_nev }}_random_state_max">Random állapot utsolsó érték:</label>
+                    <input class="input" type="number" value="50" min="1"  max="100" name="{{ stat.megye_nev }}_random_state_max" id="{{ stat.megye_nev }}_random_state_max">
+                   
+                    <label for="{{ stat.megye_nev }}_scaler">Normalizálás:</label>
+                    <select class="input" id="{{ stat.megye_nev }}_scaler" name="{{ stat.megye_nev }}_scaler">
+                        <option value="standard">Standard</option>
+                        <option value="minmax">Min-Max</option>
+                        <option value="robust">Robosztus</option>
+                        <option value="-">Nincs</option>
+                    </select>
+
+                    <label for="{{ stat.megye_nev }}_actFunction">Neuronok aktivációs függvényei:</label>
+                    <select class="input" id="{{ stat.megye_nev }}_actFunction" name="{{ stat.megye_nev }}_actFunction">
+                        <option value="logistic">Logisztikus (szigmoid)</option>
+                        <option value="relu">Relu</option>
+                        <option value="identity">Identity</option>
+                        <option value="tanh">Tanh</option>
+                    </select>
                     <br><br>
-                {% endfor %}
+                    {% endfor %}
                 <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
                 <input type="submit" class="button is-info" style="width: 100%;" value="MLP előrejelzések készítése">
             </form>

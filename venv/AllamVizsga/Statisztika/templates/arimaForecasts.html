@@ -13,6 +13,7 @@
             flex-wrap: nowrap;
             justify-content: space-between;
             align-items: stretch;
+            align-content: stretch;
         }
 
         .tables table{
@@ -36,8 +37,8 @@
 </head>
 <br>
 <body class="has-background-dark has-text-light" style=" min-height: 100vh;">
-    <div class="container" style="max-width: 1000px; width: 100%;">
-        <div class="container" style="max-width: 1000px; ">
+    <div class="container" style="max-width: 1000px; width: 90%;">
+        <div class="container">
             
             <div class="tables">
                 {% for megye in statisztikak %}
@@ -70,7 +71,7 @@
                     </table>
                 {% endfor %}
             </div>
-        <br>
+        </div>
             <!-- Táblázat az ARIMA mutatókhoz -->
             <table class="table is-bordered" style="width: 100%;">
                 <thead class="has-background-info">
@@ -94,11 +95,9 @@
                     {% endfor %}
                 </tbody>
             </table>
-
+            <a target="_blank" href="data:image/png;base64,{{ diagaramEgyben }}"><img src="data:image/png;base64,{{ diagaramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>   
         </div>
-
-        <a target="_blank" href="data:image/png;base64,{{ diagaramEgyben }}"><img src="data:image/png;base64,{{ diagaramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
         <br>
-
+    </div>
     </body>
 </html>

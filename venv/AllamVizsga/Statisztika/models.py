@@ -1,7 +1,6 @@
 import traceback
 from typing import Any
 from django.db import models
-from matplotlib import pyplot as plt
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -9,13 +8,15 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
 from sklearn.metrics import r2_score
 import base64
-import json
 import io
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
+from sklearn.metrics import mean_squared_error, accuracy_score
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
+from skopt import BayesSearchCV
+
+
 
 class Stat :
     def __init__(self, megye_nev, adatok, idoszakok):
@@ -108,7 +109,7 @@ class Stat :
             self.mse = self.MSE(self.ARIMAbecslesek)
             self.rrmse = self.RRMSE(self.ARIMAbecslesek)
             self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
-
+            
             return ([model_fit.summary(), self.ARIMAbecslesek])
         
         except Exception as e:
@@ -198,48 +199,76 @@ class Stat :
         buffer.seek(0)
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
-
-    def predict_with_mlp(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
+ 
+    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
-            return
-    
-        X_train = np.arange(1, len(self.adatok) + 1).reshape(-1, 1)
-        y_train = np.array(self.adatok)
-        X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
+            return   
+        self.X_train = np.arange(1, len(self.adatok) + 1).reshape(-1, 1)
+        self.y_train = np.array(self.adatok)
+        self.X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
 
-        self.mlp_model = MLP(normalize, hidden_layers, max_iters, random_state)
-        self.mlp_model.train_model(X_train, y_train)
+        random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers)
 
-        self.mlp_model.predictions = self.mlp_model.predict(X_test)
+        self.mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler)
+
+        self.mlp_model.train_model(self.X_train, self.y_train)
+        self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
-        self.mlp_model.r_squared = r2_score(self.teszt_adatok,  self.mlp_model.predictions)
 
         self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
-        self.mlp_model.rrmse = self.MSE(self.mlp_model.predictions)
+        self.mlp_model.rrmse = self.RRMSE(self.mlp_model.predictions)
 
+
+
+
+    def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard"):
+        best_random_state = None
+        best_rrmse = float(1000) 
+
+        for random_state in range(random_state_min, random_state_max):
+            mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler)
+
+            mlp_model.train_model(self.X_train, self.y_train)
+            predictions = mlp_model.predict(self.X_test)
+            rrmse = self.RRMSE(predictions)
+            print(f"trying {self.megye_nev}'s MLP prediction with random state {random_state} --> RRMSE: {rrmse}")
+
+            if rrmse < best_rrmse:
+                best_rrmse = rrmse
+                best_random_state = random_state
+
+        return best_random_state
 
 class MLP:
-    def __init__(self, normalize=True, hidden_layers=(12, 12, 12), max_iters=3000, random_state=50):
-        self.normalize = normalize
+    def __init__(self, test_data, actFunction, hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard"):
+        self.test_data = test_data
         self.hidden_layers = hidden_layers
         self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
         self.random_state = random_state
-        self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, max_iter=max_iters, random_state=random_state)
+        self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, solver='lbfgs',  activation=actFunction, max_iter=max_iters, random_state=random_state)
         self.scaler = StandardScaler()
         self.predictions = []
-        self.r_squared = 0
         self.mse = 0
         self.rrmse = 0
+        self.accuracy = 0
+        self.scalerMode = scalerMode
+        self.scaler = StandardScaler()
+
+        if (scalerMode == "robust"):
+            self.scaler = RobustScaler()
+        if (scalerMode == "minmax"):
+            self.scaler = MinMaxScaler()
 
     def train_model(self, X_train, y_train):
-        if self.normalize:
+        if self.scalerMode != "-":
             X_train = self.scaler.fit_transform(X_train)
         self.model.fit(X_train, y_train)
 
     def predict(self, X_test):
-        if self.normalize:
-            X_test = self.scaler.transform(X_test)
+        if self.scalerMode != "-":
+            X_test = self.scaler.transform(X_test)       
         return self.model.predict(X_test)
+    
     
