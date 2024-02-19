@@ -30,7 +30,10 @@
                    
                     <label for="{{ stat.megye_nev }}_random_state_max">Random állapot utsolsó érték:</label>
                     <input class="input" type="number" value="50" min="1"  max="100" name="{{ stat.megye_nev }}_random_state_max" id="{{ stat.megye_nev }}_random_state_max">
-                   
+
+                    <label for="{{ stat.megye_nev }}_targetRRMSE">Cél RRMSE %-ban:</label>
+                    <input class="input" type="number" value="0" min="1"  max="100" name="{{ stat.megye_nev }}_targetRRMSE" id="{{ stat.megye_nev }}_targetRRMSE">
+
                     <label for="{{ stat.megye_nev }}_scaler">Normalizálás:</label>
                     <select class="input" id="{{ stat.megye_nev }}_scaler" name="{{ stat.megye_nev }}_scaler">
                         <option value="standard">Standard</option>
@@ -39,14 +42,23 @@
                         <option value="-">Nincs</option>
                     </select>
 
-                    <label for="{{ stat.megye_nev }}_actFunction">Neuronok aktivációs függvényei:</label>
+                    <label for="{{ stat.megye_nev }}_actFunction">Aktivációs függvény:</label>
                     <select class="input" id="{{ stat.megye_nev }}_actFunction" name="{{ stat.megye_nev }}_actFunction">
                         <option value="logistic">Logisztikus (szigmoid)</option>
-                        <option value="relu">Relu</option>
+                        <option value="relu">Rectified Linear Unit</option>
                         <option value="identity">Identity</option>
                         <option value="tanh">Tanh</option>
                     </select>
-                    <br><br>
+                    <br>
+
+                    <label for="{{ stat.megye_nev }}_">Optimalizációs Algoritmus :</label>
+                    <select class="input" id="{{ stat.megye_nev }}_solver" name="{{ stat.megye_nev }}_solver">
+                        <option value="adam">Adaptive Moment Estimation (ADAM)</option>
+                        <option value="lbfgs">Limited-memory Broyden-Fletcher-Goldfarb-Shanno(LBFGS)</option>
+                        <option value="sgd">Stochastic Gradient Descen (SGD)</option>
+                    </select>
+                    <br>
+                    <br>
                     {% endfor %}
                 <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
                 <input type="submit" class="button is-info" style="width: 100%;" value="MLP előrejelzések készítése">

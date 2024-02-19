@@ -200,7 +200,7 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
  
-    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50):
+    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
             return   
@@ -208,9 +208,9 @@ class Stat :
         self.y_train = np.array(self.adatok)
         self.X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
 
-        random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers)
+        random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
 
-        self.mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler)
+        self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=random_state, scalerMode=scaler, solver=solver)
 
         self.mlp_model.train_model(self.X_train, self.y_train)
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
@@ -222,12 +222,12 @@ class Stat :
 
 
 
-    def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard"):
+    def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard", solver="adam", targetRRMSE=0.06):
         best_random_state = None
         best_rrmse = float(1000) 
 
         for random_state in range(random_state_min, random_state_max):
-            mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler)
+            mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler, solver=solver)
 
             mlp_model.train_model(self.X_train, self.y_train)
             predictions = mlp_model.predict(self.X_test)
@@ -237,17 +237,21 @@ class Stat :
             if rrmse < best_rrmse:
                 best_rrmse = rrmse
                 best_random_state = random_state
+            
+            if round(rrmse, 2) <= targetRRMSE:
+                print(f"target RRMSE{targetRRMSE} reached, stopping search...")
+                return best_random_state
 
         return best_random_state
 
 class MLP:
-    def __init__(self, test_data, actFunction, hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard"):
+    def __init__(self, test_data, actFunction, hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard", solver="adam"):
         self.test_data = test_data
         self.hidden_layers = hidden_layers
         self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
         self.random_state = random_state
-        self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, solver='lbfgs',  activation=actFunction, max_iter=max_iters, random_state=random_state)
+        self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, solver=solver,  activation=actFunction, max_iter=max_iters, random_state=random_state)
         self.scaler = StandardScaler()
         self.predictions = []
         self.mse = 0
@@ -255,6 +259,8 @@ class MLP:
         self.accuracy = 0
         self.scalerMode = scalerMode
         self.scaler = StandardScaler()
+        self.modelStr = self.NrofHiddenLayers * '{}'
+        self.modelStr = self.modelStr.format(*hidden_layers) + f" random state({self.random_state})"
 
         if (scalerMode == "robust"):
             self.scaler = RobustScaler()

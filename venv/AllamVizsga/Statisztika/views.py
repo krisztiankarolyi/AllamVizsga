@@ -102,10 +102,12 @@ def MLPResults(request):
             scaler =  request.POST[megye.megye_nev+'_scaler']
             actFunction = request.POST[megye.megye_nev+'_actFunction']
             maxIters = request.POST[megye.megye_nev+'_max_iters']
+            targetRRMSE = float(request.POST[megye.megye_nev+'_targetRRMSE'])/100
+            solver = request.POST[megye.megye_nev+"_solver"]
             randomStateMin = int(request.POST[megye.megye_nev+'_random_state_min'])
             randomStateMax = int(request.POST[megye.megye_nev+'_random_state_max'])
             hidden_layers = tuple(map(int, request.POST[megye.megye_nev+'_hidden_layers'].split(',')))
-            megye.predict_with_mlp(actFunction, hidden_layers, int(maxIters), scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin) 
+            megye.predict_with_mlp(actFunction, hidden_layers, int(maxIters), scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin, solver=solver, targetRRMSE=targetRRMSE) 
             diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.megye_nev+" MLP", megye.megye_nev+" mért"], 1, megye.megye_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.setMLPDiagram(diagram)
