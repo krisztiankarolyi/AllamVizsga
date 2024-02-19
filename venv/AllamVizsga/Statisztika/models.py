@@ -14,9 +14,6 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 from sklearn.metrics import mean_squared_error, accuracy_score
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
-from skopt import BayesSearchCV
-
-
 
 class Stat :
     def __init__(self, megye_nev, adatok, idoszakok):
@@ -226,7 +223,7 @@ class Stat :
         best_random_state = None
         best_rrmse = float(1000) 
 
-        for random_state in range(random_state_min, random_state_max):
+        for random_state in range(random_state_min, random_state_max+1):
             mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler, solver=solver)
 
             mlp_model.train_model(self.X_train, self.y_train)

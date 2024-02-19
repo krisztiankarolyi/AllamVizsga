@@ -100,6 +100,9 @@
         const fileNameLabel2 = document.getElementById('fileNameLabel2');
         const sameFile = document.getElementById('sameFile');
         const testFileField = document.getElementById('testFileField');
+        const testFileSheetName = document.getElementById("tesztSheetName");
+        const fileSheetName = document.getElementById("sheet");
+
 
         fileInput.addEventListener('change', function() {
             if (fileInput.files.length > 0) {
@@ -127,6 +130,10 @@
             } else {
                 fileNameLabel2.textContent = 'Nincs kiválasztott fájl.';
             }
+        });
+
+        fileSheetName.addEventListener('focusout', function() {
+            testFileSheetName.value = fileSheetName.value + "_teszt";
         });
 
 
