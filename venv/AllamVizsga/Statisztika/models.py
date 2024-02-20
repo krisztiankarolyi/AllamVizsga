@@ -205,9 +205,9 @@ class Stat :
         self.y_train = np.array(self.adatok)
         self.X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
 
-        random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
+        self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
 
-        self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=random_state, scalerMode=scaler, solver=solver)
+        self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scalerMode=scaler, solver=solver)
 
         self.mlp_model.train_model(self.X_train, self.y_train)
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
@@ -215,9 +215,6 @@ class Stat :
 
         self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
         self.mlp_model.rrmse = self.RRMSE(self.mlp_model.predictions)
-
-
-
 
     def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard", solver="adam", targetRRMSE=0.06):
         best_random_state = None
@@ -239,25 +236,28 @@ class Stat :
                 print(f"target RRMSE{targetRRMSE} reached, stopping search...")
                 return best_random_state
 
+        self.random_state = best_random_state
         return best_random_state
 
 class MLP:
-    def __init__(self, test_data, actFunction, hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard", solver="adam"):
+    def __init__(self, test_data, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard", solver="adam"):
         self.test_data = test_data
         self.hidden_layers = hidden_layers
         self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
         self.random_state = random_state
+        self.activation = actFunction
         self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, solver=solver,  activation=actFunction, max_iter=max_iters, random_state=random_state)
         self.scaler = StandardScaler()
         self.predictions = []
         self.mse = 0
+        self.weights = []
         self.rrmse = 0
         self.accuracy = 0
         self.scalerMode = scalerMode
         self.scaler = StandardScaler()
-        self.modelStr = self.NrofHiddenLayers * '{}'
-        self.modelStr = self.modelStr.format(*hidden_layers) + f" random state({self.random_state})"
+        self.modelStr = self.NrofHiddenLayers * '{}, '
+        self.modelStr = "("+self.modelStr.format(*hidden_layers)[:-1]+")"
 
         if (scalerMode == "robust"):
             self.scaler = RobustScaler()
@@ -268,10 +268,12 @@ class MLP:
         if self.scalerMode != "-":
             X_train = self.scaler.fit_transform(X_train)
         self.model.fit(X_train, y_train)
+        self.weights = [layer_weights for layer_weights in self.model.coefs_]  
 
     def predict(self, X_test):
         if self.scalerMode != "-":
-            X_test = self.scaler.transform(X_test)       
+            X_test = self.scaler.transform(X_test)    
+        self.weights = [layer_weights for layer_weights in self.model.coefs_]
         return self.model.predict(X_test)
     
     

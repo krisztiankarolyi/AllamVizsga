@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-tooltip@0.10.0/bulma-tooltip.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-switch@0.9.0/bulma-switch.min.css">
         <title>Adatok feltöltve</title>
+        <style>
+            .info{
+                padding: 2px 10px;
+                border-radius: 100%;
+                text-align: center;
+                float: right;
+                height: 10px;
+            }
+            label{
+                line-height: 3rem;
+                width: 100%;
+                display: inline-block;
+                text-align: justify;
+            }
+        </style>
     </head>
     <body class="has-background-dark has-text-light" style="min-height: 100vh;">
         <section id="mlp" style="max-width: 800px; margin: auto; width: 90%;">
@@ -22,19 +37,19 @@
                     <label for="{{ stat.megye_nev }}_hidden_layers">Rejtett rétegek neuronjainak száma (pl. 12,12,12):</label>
                     <input class="input" type="text" value="12,12,12" required name="{{ stat.megye_nev }}_hidden_layers" id="{{ stat.megye_nev }}_hidden_layers">
                     
-                    <label for="{{ stat.nammegye_neve }}_max_iters">Max iterációk száma:</label>
-                    <input class="input" type="number" value="1000" min="1" required name="{{ stat.megye_nev }}_max_iters" id="{{ stat.megye_nev }}_max_iters">
+                    <label for="{{ stat.nammegye_neve }}_max_iters">Max iterációk száma: <i class="info"> ℹ️ </i></label>
+                    <input class="input" type="number" value="2000" min="1" required name="{{ stat.megye_nev }}_max_iters" id="{{ stat.megye_nev }}_max_iters">
                     
-                    <label for="{{ stat.megye_nev }}_random_state_min">Random állapot kezdőérték:</label>
+                    <label for="{{ stat.megye_nev }}_random_state_min">Random állapot kezdőérték: <i class="info">ℹ️</i></label>
                     <input class="input" type="number" value="42" min="1" max="100" name="{{ stat.megye_nev }}_random_state_min" id="{{ stat.megye_nev }}_random_state_min">
                    
                     <label for="{{ stat.megye_nev }}_random_state_max">Random állapot utsolsó érték:</label>
-                    <input class="input" type="number" value="50" min="1"  max="100" name="{{ stat.megye_nev }}_random_state_max" id="{{ stat.megye_nev }}_random_state_max">
+                    <input class="input" type="number" value="41" min="1"  max="100" name="{{ stat.megye_nev }}_random_state_max" id="{{ stat.megye_nev }}_random_state_max">
 
-                    <label for="{{ stat.megye_nev }}_targetRRMSE">Cél RRMSE %-ban:</label>
-                    <input class="input" type="number" value="0" min="1"  max="100" name="{{ stat.megye_nev }}_targetRRMSE" id="{{ stat.megye_nev }}_targetRRMSE">
+                    <label for="{{ stat.megye_nev }}_targetRRMSE">Cél RRMSE %-ban: <i class="info">ℹ️</i></label>
+                    <input class="input" type="number" value="1" min="1"  max="100" name="{{ stat.megye_nev }}_targetRRMSE" id="{{ stat.megye_nev }}_targetRRMSE">
 
-                    <label for="{{ stat.megye_nev }}_scaler">Normalizálás:</label>
+                    <label for="{{ stat.megye_nev }}_scaler">Normalizálás: <i class="info">ℹ️</i></label>
                     <select class="input" id="{{ stat.megye_nev }}_scaler" name="{{ stat.megye_nev }}_scaler">
                         <option value="standard">Standard</option>
                         <option value="minmax">Min-Max</option>
@@ -42,7 +57,7 @@
                         <option value="-">Nincs</option>
                     </select>
 
-                    <label for="{{ stat.megye_nev }}_actFunction">Aktivációs függvény:</label>
+                    <label for="{{ stat.megye_nev }}_actFunction">Aktivációs függvény: <i class="info">ℹ️</i></label>
                     <select class="input" id="{{ stat.megye_nev }}_actFunction" name="{{ stat.megye_nev }}_actFunction">
                         <option value="logistic">Logisztikus (szigmoid)</option>
                         <option value="relu">Rectified Linear Unit</option>
@@ -51,7 +66,7 @@
                     </select>
                     <br>
 
-                    <label for="{{ stat.megye_nev }}_">Optimalizációs Algoritmus :</label>
+                    <label for="{{ stat.megye_nev }}_">Optimalizációs Algoritmus: <i class="info">ℹ️</i></label>
                     <select class="input" id="{{ stat.megye_nev }}_solver" name="{{ stat.megye_nev }}_solver">
                         <option value="adam">Adaptive Moment Estimation (ADAM)</option>
                         <option value="lbfgs">Limited-memory Broyden-Fletcher-Goldfarb-Shanno(LBFGS)</option>

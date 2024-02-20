@@ -21,6 +21,12 @@
             height: 100%;
         }
 
+        .code{
+            height: 200px; overflow: scroll; font-family: monospace; text-align:justify;margin: 20px 0px; padding: 10px;
+            background-color: #333;
+            line-height: 2rem;
+        }
+
         @media screen and (max-width: 600px) {
             .tables{
                 flex-direction: column;
@@ -81,7 +87,7 @@
             <tbody>
                 {% for megye in statisztikak %}
                 <tr>
-                    <td>{{ megye.megye_nev }}</td>
+                    <td>{{ megye.megye_nev }} MLP ({{ megye.mlp_model.modelStr }}, {{megye.mlp_model.model.n_layers_}} réteg)</td>
                     <td>{{ megye.mlp_model.mse | floatformat:2 }}</td>
                     <td>{{ megye.mlp_model.rrmse |floatformat:2 }}</td>
                 </tr>
@@ -91,6 +97,24 @@
         <div>
             <a target="_blank" href="data:image/png;base64,{{ diagramEgyben }}"><img src="data:image/png;base64,{{ diagramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>
         </div>
+        
+        {% for megye in statisztikak %}
+        <div class="box has-background-light has-text-dark">
+        <h1 class="subtitle">{{megye.megye_nev}} MLP modell összefoglaló</h1>
+            <p> bemeneti neuronok száma: {{megye.mlp_model.model.n_features_in_}}</p>
+            <p> Kimeneti neuronok száma: {{megye.mlp_model.model.n_outputs_}}</p>
+            <p> Legjobb random kezdőérték a súlyozásra: {{megye.mlp_model.random_state}}</p>
+            <p> Rejtett rétegek és azok neuronjainak száma: {{megye.mlp_model.modelStr}}</p>
+            <p> Normalizálási eljárás: {{megye.mlp_model.scalerMode}}</p>
+            <p>Optimalizálási ciklus lépésszáma: {{megye.mlp_model.model.n_iter_}}</p>
+            <p> Rejtett rétegek Aktivációs függvénye: {{megye.mlp_model.activation}}</p>
+            <p> Kimeneti réteg Aktivációs függvvénye: {{megye.mlp_model.model.out_activation_}}</p>
+            <p class="code has-text-light">ELtolási értékek vektora: <br> {{megye.mlp_model.model.intercepts_}}</p>
+            <div class="code hover-text has-text-light">Rétegek súlyai:  <br> {{megye.mlp_model.model.coefs_}}</div>
+        </div>
+        <br>
+        {% endfor %}
+    </div>
     </div>
 </section>
 
