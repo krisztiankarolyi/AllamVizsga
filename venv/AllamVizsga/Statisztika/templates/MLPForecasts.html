@@ -101,14 +101,57 @@
         {% for megye in statisztikak %}
         <div class="box has-background-light has-text-dark">
         <h1 class="subtitle">{{megye.megye_nev}} MLP modell összefoglaló</h1>
-            <p> bemeneti neuronok száma: {{megye.mlp_model.model.n_features_in_}}</p>
-            <p> Kimeneti neuronok száma: {{megye.mlp_model.model.n_outputs_}}</p>
-            <p> Legjobb random kezdőérték a súlyozásra: {{megye.mlp_model.random_state}}</p>
-            <p> Rejtett rétegek és azok neuronjainak száma: {{megye.mlp_model.modelStr}}</p>
-            <p> Normalizálási eljárás: {{megye.mlp_model.scalerMode}}</p>
-            <p>Optimalizálási ciklus lépésszáma: {{megye.mlp_model.model.n_iter_}}</p>
-            <p> Rejtett rétegek Aktivációs függvénye: {{megye.mlp_model.activation}}</p>
-            <p> Kimeneti réteg Aktivációs függvvénye: {{megye.mlp_model.model.out_activation_}}</p>
+        <div class="columns is-gapless is-fullwidth">
+            <div class="column">
+                <table class="table is-fullwidth is-hoverable">
+                    <tbody>
+                        <tr>
+                            <th>Bemeneti neuronok száma:</th>
+                            <td>{{megye.mlp_model.model.n_features_in_}}</td>
+                        </tr>
+                        <tr>
+                            <th>Kimeneti neuronok száma:</th>
+                            <td>{{megye.mlp_model.model.n_outputs_}}</td>
+                        </tr>
+                        <tr>
+                            <th>Legjobb random kezdőérték a súlyozásra:</th>
+                            <td>{{megye.mlp_model.random_state}}</td>
+                        </tr>
+                        <tr>
+                            <th>Rejtett rétegek és azok neuronjainak száma:</th>
+                            <td>{{megye.mlp_model.modelStr}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="column">
+                <table class="table is-fullwidth is-hoverable">
+                    <tbody>
+                        <tr>
+                            <th>Normalizálási eljárás:</th>
+                            <td>{{megye.mlp_model.scalerMode}}</td>
+                        </tr>
+                        <tr>
+                            <th>Optimalizálási Algoritmus:</th>
+                            <td>{{megye.mlp_model.model.solver}}</td>
+                        </tr>
+                        <tr>
+                            <th>Optimalizálási ciklus lépésszáma:</th>
+                            <td>{{megye.mlp_model.model.n_iter_}}</td>
+                        </tr>
+                        <tr>
+                            <th>Rejtett rétegek Aktivációs függvénye:</th>
+                            <td>{{megye.mlp_model.activation}}</td>
+                        </tr>
+                        <tr>
+                            <th>Kimeneti réteg Aktivációs függvénye:</th>
+                            <td>{{megye.mlp_model.model.out_activation_}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
             <p class="code has-text-light">ELtolási értékek vektora: <br> {{megye.mlp_model.model.intercepts_}}</p>
             <div class="code hover-text has-text-light">Rétegek súlyai:  <br> {{megye.mlp_model.model.coefs_}}</div>
         </div>
