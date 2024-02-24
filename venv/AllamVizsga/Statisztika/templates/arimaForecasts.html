@@ -56,8 +56,8 @@
                         <tbody>
                             {% for becsles, mertadat in megye.ARIMAbecsleseksZipped %}
                                 <tr>
-                                    <td>{{ becsle s|floatformat:2 }}</td>
-                                    <td>{{ mertadat|floatformat:2 }}</td>
+                                    <td>{{ becsles | floatformat:2 }}</td>
+                                    <td>{{ mertadat | floatformat:2 }}</td>
                                 </tr>
                             {% endfor %}
                                 <tr>
