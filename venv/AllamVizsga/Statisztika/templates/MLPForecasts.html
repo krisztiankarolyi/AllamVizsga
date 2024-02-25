@@ -22,12 +22,27 @@
         }
 
         .code{
-            height: 200px; overflow: scroll; font-family: monospace; text-align:justify;margin: 20px 0px; padding: 10px;
+            height: 200px; 
+            font-family: monospace;
+            text-align:justify;
+            margin: 20px 0px;
+            padding: 10px;
             background-color: #333;
+            color: white;
             line-height: 2rem;
+            overflow: auto;
+        }
+        
+        .half{
+            width: 50%;
         }
 
-        @media screen and (max-width: 600px) {
+        .flex{
+            display: flex; flex-direction: row; flex-wrap: nowrap;
+        }
+
+        @media screen and (max-width: 600px) 
+        {
             .tables{
                 flex-direction: column;
                 flex-wrap: wrap;
@@ -37,7 +52,14 @@
             .tables table{
             width: 100%;
             height: 100%;
+             }
+             .flex{
+                display: flex; flex-direction: column; flex-wrap: wrap;
+            }   
+            .half{
+            width: 100%;
         }
+        
         }
     </style>
 </head>
@@ -121,43 +143,49 @@
                             <th>Rejtett rétegek és azok neuronjainak száma:</th>
                             <td>{{megye.mlp_model.modelStr}}</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="column">
-                <table class="table is-fullwidth is-hoverable">
-                    <tbody>
+
                         <tr>
                             <th>Normalizálási eljárás:</th>
-                            <td>{{megye.mlp_model.scalerMode}}</td>
+                            <td>{{ megye.mlp_model.scalerMode }}</td>
                         </tr>
-                        <tr>
+ 
                             <th>Optimalizálási Algoritmus:</th>
-                            <td>{{megye.mlp_model.model.solver}}</td>
+                            <td>{{ megye.mlp_model.model.solver }}</td>
                         </tr>
                         <tr>
                             <th>Optimalizálási ciklus lépésszáma:</th>
-                            <td>{{megye.mlp_model.model.n_iter_}}</td>
+                            <td>{{ megye.mlp_model.model.n_iter_ }}</td>
                         </tr>
                         <tr>
                             <th>Rejtett rétegek Aktivációs függvénye:</th>
-                            <td>{{megye.mlp_model.activation}}</td>
+                            <td>{{ megye.mlp_model.activation }}</td>
                         </tr>
                         <tr>
                             <th>Kimeneti réteg Aktivációs függvénye:</th>
-                            <td>{{megye.mlp_model.model.out_activation_}}</td>
-                        </tr>
-                        <tr>
-                            <th>Adatok függősége: </th>
-                            <td>{{megye.dependency}}</td>
+                            <td >{{ megye.mlp_model.model.out_activation_ }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-        
-            <p class="code has-text-light">ELtolási értékek vektora: <br> {{megye.mlp_model.model.intercepts_}}</p>
-            <div class="code hover-text has-text-light">Rétegek súlyai:  <br> {{megye.mlp_model.model.coefs_}}</div>
+        <div class="flex">
+            <div class="code half has-text-light">Tanító párok: (amiből megtanulta a súlyokat) <br>
+                {% for x_train, y_train in megye.X_Train_Y_Train_Zipped %}
+                    <p>{{x_train}} --> {{y_train}}</p>
+                {% endfor %}
+            </div>
+    
+            <div class="code  half has-text-light">Teszt párok (amiket meg kell jósoljon): <br>
+                {% for x_test, y_test in megye.X_Test_Y_Test_Zipped %}
+                    <p>{{x_test}} --> {{y_test}}</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="flex">
+            <div class="code half">ELtolási értékek vektora: <br> {{megye.mlp_model.model.intercepts_}}</div>
+            <div class="code half">Rétegek súlyai:  <br> {{megye.mlp_model.model.coefs_}}</div>
+        </div>
+            
         </div>
         <br>
         {% endfor %}

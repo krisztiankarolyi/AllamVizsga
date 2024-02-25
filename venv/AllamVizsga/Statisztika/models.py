@@ -94,24 +94,6 @@ class Stat :
         self.kpss["critical_values"] = {'5':0}
         self.kpss["critical_values"]['5'] = round(kpss_result[3]["5%"], 2)
 
-    def AR(self, p: int, t:int):
-        try:
-            p = int(p)
-            idosor = self.adatok
-            model = sm.tsa.ARIMA(idosor, order=(p, 0, 0))
-            model_fit = model.fit()
-            self.ARIMAbecslesek = model_fit.forecast(t)
-            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
-            self.aic= model_fit.aic
-            self.mse = self.MSE(self.ARIMAbecslesek)
-            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
-            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
-            
-            return ([model_fit.summary(), self.ARIMAbecslesek])
-        
-        except Exception as e:
-            print(e)
-
     def SeasonsAvg(self) -> dict:
         """returns a dictionary with total averages of the dataset for each season (winter, spring, summer, autumn)"""
 
@@ -135,41 +117,8 @@ class Stat :
         averages["winter"] /= winterCount; averages["spring"] /= springCount; averages["summer"] /= summerCount; averages["autumn"] /= AutumnCount
         return averages
         
-    def MA(self, q: int, t:int):
-        try:
-            q = int(q)
-            idosor = self.adatok
-            model = sm.tsa.ARIMA(idosor, order=(0, 0, q))
-            model_fit = model.fit()
-            self.ARIMAbecslesek = model_fit.forecast(t)
-            self.aic= model_fit.aic
-            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
-            self.mse = self.MSE(self.ARIMAbecslesek)
-            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
-            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
-            return ([model_fit.summary(), self.ARIMAbecslesek])
-        
-        except Exception as e:
-            print(e)
-    
-    def ARMA(self, p:int, q: int, t:int):
-        try:
-            p = int(p); q = int(q)
-            idosor = self.adatok
-            model = sm.tsa.ARIMA(idosor, order=(p, 0, q))
-            model_fit = model.fit()
-            self.ARIMAbecslesek = [round(value, 2) for value in model_fit.forecast(t)]
-            self.aic = model_fit.aic
-            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
-            self.mse = self.MSE(self.ARIMAbecslesek)
-            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
-            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
-            return ([model_fit.summary(), self.ARIMAbecslesek])
-        
-        except Exception as e:
-            print(e)
            
-    def ARIMA(self, p:int, d: int, q: int, t:int):
+    def ARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
         try:
             p = int(p); q = int(q); d = int(d)
             idosor = self.adatok
@@ -214,11 +163,15 @@ class Stat :
         else:
             # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
             self.dependency = f"{n_delays} db Késleltetett érték"
-            data = self.adatok[-n_delays:] 
-            data = data + self.teszt_adatok
-            self.X_train, self.y_train = self.split_sequence(data, n_delays)
-            self.X_test, self.y_test = self.split_sequence(data, n_delays)
-  
+            test_data = self.adatok[-n_delays:]  + self.teszt_adatok
+
+            self.X_train, self.y_train = self.split_sequence(self.adatok, n_delays)
+            self.X_test, self.y_test = self.split_sequence(test_data, n_delays)
+
+
+        self.X_Train_Y_Train_Zipped = zip(self.X_train, self.y_train)
+        self.X_Test_Y_Test_Zipped = zip(self.X_test, self.y_test)
+
         print(f"X train szett: {self.X_train}")
         print(f"Y train szett: {self.y_train}")
 
@@ -232,23 +185,17 @@ class Stat :
 
 
     def split_sequence(self, sequence, n_steps):
-        try:
             X, y = list(), list()
             for i in range(len(sequence)):
-                # find the end of this pattern
-
                 end_ix = i + n_steps
-                # check if we are beyond the sequence
                 if end_ix > len(sequence)-1:
                     break
-                # gather input and output parts of the pattern
                 seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
                 X.append(seq_x)
                 y.append(seq_y)
 
             return np.array(X), np.array(y)
-        except IndexError as e:
-            print(f"index hiba: {e} \n lista: {sequence} \n lépséköz: {n_steps}")
+    
 
     def get_month_number(self, month):
         months = {

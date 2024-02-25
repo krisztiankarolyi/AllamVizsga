@@ -134,18 +134,13 @@ def MLPResults(request):
     
 def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None, grid=False): 
     plt.figure(figsize=(15, 7))
-    
     for i, megye in enumerate(megnevezesek): 
         plt.plot(idoszakok, adatsorok[i], label=megye)
-
     plt.ylabel(yFelirat)
     plt.title(f"{Cim} {idoszakok[0]} - {idoszakok[-1]} között")
     plt.grid(grid)
+    plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
 
-    try:
-        plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
-    except Exception as e:
-        print(f"Error: {e}")
 
     if all((y_min, y_max, y_step)):
         plt.yticks(np.arange(y_min, y_max, y_step))
@@ -176,24 +171,22 @@ def arima(request):
             d = request.POST[megye.megye_nev+'_d']
             megye.teszt_idoszakok = beolvasott_teszt_idoszakok 
             tipus = request.POST[megye.megye_nev+'_tipus']
-            test_results = None
-            title = None
+            test_results = ""
+            title = ""
             t = len(beolvasott_teszt_idoszakok)
 
+            test_results = megye.ARIMA(p, d, q, t)
+
             if tipus == "ar":
-                test_results = megye.AR(p, t)
                 title = f"\n{megye.megye_nev} AR({p})\n"
 
             elif tipus == "ma":
-                test_results = megye.MA(q, t)
                 title = f"\n{megye.megye_nev} MA({q})\n"
 
             elif tipus == "arma":
-                test_results = megye.ARMA(p, q, t)
                 title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
             
             elif tipus == "arima":
-                test_results = megye.ARIMA(p, d, q, t)
                 title = f"\n{megye.megye_nev} ARIMA({p}, {d}, {q})\n"
 
             if test_results:
