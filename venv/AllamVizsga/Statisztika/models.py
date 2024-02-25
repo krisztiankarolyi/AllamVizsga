@@ -1,3 +1,4 @@
+import array
 import traceback
 from typing import Any
 from django.db import models
@@ -41,8 +42,7 @@ class Stat :
         self.minDatum = self.idoszakok[list.index(self.adatok, self.min)]
         self.maxDatum = self.idoszakok[list.index(self.adatok, self.max)]
         self.Stationarity()
-
-    
+  
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
     
@@ -197,24 +197,75 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
  
-    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6):
+    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
-            return   
-        self.X_train = np.arange(1, len(self.adatok) + 1).reshape(-1, 1)
-        self.y_train = np.array(self.adatok)
-        self.X_test = np.arange(len(self.adatok) + 1, len(self.adatok) + len(self.teszt_adatok) + 1).reshape(-1, 1)
+            return          
+
+        if(x_mode == "date"):
+            self.dependency = "év - hónap párok"
+            # az adatok a megfigyelések időpontjaitól függnek (év -hónap száma pérosok)
+            data = self.idoszakok + self.teszt_idoszakok
+            target = self.adatok + self.teszt_adatok
+            data = [item.split() for item in data]
+            data = [[int(item[0]), self.get_month_number(item[1])] for item in data]
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data, target, test_size=10, shuffle=False)
+
+        else:
+            # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
+            self.dependency = f"{n_delays} db Késleltetett érték"
+            data = self.adatok[-n_delays:] 
+            data = data + self.teszt_adatok
+            self.X_train, self.y_train = self.split_sequence(data, n_delays)
+            self.X_test, self.y_test = self.split_sequence(data, n_delays)
+  
+        print(f"X train szett: {self.X_train}")
+        print(f"Y train szett: {self.y_train}")
 
         self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
-
         self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scalerMode=scaler, solver=solver)
-
         self.mlp_model.train_model(self.X_train, self.y_train)
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
-
         self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
         self.mlp_model.rrmse = self.RRMSE(self.mlp_model.predictions)
+
+
+    def split_sequence(self, sequence, n_steps):
+        try:
+            X, y = list(), list()
+            for i in range(len(sequence)):
+                # find the end of this pattern
+
+                end_ix = i + n_steps
+                # check if we are beyond the sequence
+                if end_ix > len(sequence)-1:
+                    break
+                # gather input and output parts of the pattern
+                seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
+                X.append(seq_x)
+                y.append(seq_y)
+
+            return np.array(X), np.array(y)
+        except IndexError as e:
+            print(f"index hiba: {e} \n lista: {sequence} \n lépséköz: {n_steps}")
+
+    def get_month_number(self, month):
+        months = {
+            'január': 1,
+            'február': 2,
+            'március': 3,
+            'április': 4,
+            'május': 5,
+            'június': 6,
+            'július': 7,
+            'augusztus': 8,
+            'szeptember': 9,
+            'október': 10,
+            'november': 11,
+            'december': 12
+        }
+        return months[month]
 
     def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard", solver="adam", targetRRMSE=0.06):
         best_random_state = None
@@ -238,7 +289,8 @@ class Stat :
 
         self.random_state = best_random_state
         return best_random_state
-
+    
+  
 class MLP:
     def __init__(self, test_data, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard", solver="adam"):
         self.test_data = test_data
@@ -277,3 +329,4 @@ class MLP:
         return self.model.predict(X_test)
     
     
+

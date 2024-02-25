@@ -73,9 +73,16 @@
                         <option value="sgd">Stochastic Gradient Descen (SGD)</option>
                     </select>
                     <br>
+                    <label for="{{ stat.megye_nev }}_scaler">Tanítás független változója:: <i class="info">ℹ️</i></label>
+                    <select class="input" id="{{ stat.megye_nev }}_x_mode" name="{{ stat.megye_nev }}_x_mode">
+                        <option value="delayed">n db Késleltetett érték</option>
+                        <option value="date">év - hónap párosok</option>
+                    </select>       
                     <br>
-                    {% endfor %}
-                <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
+                    <label for="{{ stat.megye_nev }}_n_delay">Késleltetett értékek: <i class="info">ℹ️</i></label>
+                    <input class="input" type="number" value="3" min="1" max="10" name="{{ stat.megye_nev }}_n_delay" id="{{ stat.megye_nev }}_n_delay">
+                   
+                    {% endfor %}       
                 <input type="submit" class="button is-info" style="width: 100%;" value="MLP előrejelzések készítése">
             </form>
             <br><br>
