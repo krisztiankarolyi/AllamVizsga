@@ -16,6 +16,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
 
+
 class Stat :
     def __init__(self, megye_nev, adatok, idoszakok):
         self.megye_nev = megye_nev
@@ -153,7 +154,7 @@ class Stat :
 
         if(x_mode == "date"):
             self.dependency = "év - hónap párok"
-            # az adatok a megfigyelések időpontjaitól függnek (év -hónap száma pérosok)
+            # az adatok a megfigyelések időpontjaitól függnek (év -hónap száma párosok)
             data = self.idoszakok + self.teszt_idoszakok
             target = self.adatok + self.teszt_adatok
             data = [item.split() for item in data]
@@ -172,9 +173,6 @@ class Stat :
         self.X_Train_Y_Train_Zipped = zip(self.X_train, self.y_train)
         self.X_Test_Y_Test_Zipped = zip(self.X_test, self.y_test)
 
-        print(f"X train szett: {self.X_train}")
-        print(f"Y train szett: {self.y_train}")
-
         self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
         self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scalerMode=scaler, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
@@ -182,7 +180,6 @@ class Stat :
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
         self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
         self.mlp_model.rrmse = self.RRMSE(self.mlp_model.predictions)
-
 
     def split_sequence(self, sequence, n_steps):
             X, y = list(), list()
@@ -196,7 +193,6 @@ class Stat :
 
             return np.array(X), np.array(y)
     
-
     def get_month_number(self, month):
         months = {
             'január': 1,
@@ -275,5 +271,8 @@ class MLP:
         self.weights = [layer_weights for layer_weights in self.model.coefs_]
         return self.model.predict(X_test)
     
-    
+
+class LSTM:
+    def __init__(self):
+        pass
 

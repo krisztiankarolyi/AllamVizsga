@@ -15,6 +15,7 @@ import statsmodels.api as sm
 from django.contrib import messages
 from django.shortcuts import redirect
 
+
 global statisztikak 
 
 def home(request):
@@ -74,9 +75,10 @@ def upload(request):
 
         return render(request, 'upload.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
     
-    except pd.errors.ParserError:
+    except Exception:
         print(traceback.format_exc())
-        return HttpResponse("Helytelen fájl!", status=400)
+        messages.error(request, 'Nem található a munkalap!')
+        return redirect('home')
 
 
 
