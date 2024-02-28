@@ -81,7 +81,6 @@ def upload(request):
         return redirect('home')
 
 
-
 def BoxJenkins(request):
     global statisztikak
     for megye in statisztikak:
@@ -96,6 +95,49 @@ def MLP(request):
     except Exception as e:
         print(traceback.format_exc())
         return HttpResponse("Hiba történt. "+str(e))
+    
+def LSTM(request):
+    try: 
+        global statisztikak
+        return render(request, 'LSTM.html', {'statisztikak': statisztikak})
+    except Exception as e:
+        print(traceback.format_exc())
+        return HttpResponse("Hiba történt. "+str(e))
+
+
+def LSTMResults(request):
+    scaler = ""
+    solver = "adam"
+    activation = "relu"
+    mode = "vanilla"
+    epochs = 200
+    n_steps = 3
+    units = 50
+
+    for megye in statisztikak:           
+        scaler =  request.POST[megye.idosor_nev+'_scaler']
+        activation = request.POST[megye.idosor_nev+'_actFunction']
+        epochs = int(request.POST[megye.idosor_nev+'_epochs'])
+        solver = request.POST[megye.idosor_nev+"_solver"]
+        n_steps = int(request.POST[megye.idosor_nev+"_n_steps"])
+        megye.predict_with_lstm(n_steps = n_steps, solver=solver, activation = activation,
+            scaler = scaler, units=units,  mode = mode, epochs = epochs )
+        diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5)
+        diagram = base64.b64encode(diagram.read()).decode('utf-8')
+        megye.lstm.diagram = diagram
+
+        adatsorNevek = []
+        adatsorok = []
+        for megye in statisztikak:
+            adatsorNevek.append(megye.idosor_nev)
+            adatsorok.append(megye.teszt_adatok)
+            adatsorNevek.append(megye.idosor_nev+" LSTM")
+            adatsorok.append(megye.lstm.predictions)
+
+        diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+        diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+
+        return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
 
 def MLPResults(request):
     try:
@@ -112,7 +154,7 @@ def MLPResults(request):
             randomStateMax = int(request.POST[megye.idosor_nev+'_random_state_max'])
             hidden_layers = tuple(map(int, request.POST[megye.idosor_nev+'_hidden_layers'].split(',')))
             megye.predict_with_mlp(actFunction, hidden_layers, int(maxIters), scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin, solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays) 
-            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" MLP", "", 2, 5, 0.5)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.mlp_model.diagram = diagram
 

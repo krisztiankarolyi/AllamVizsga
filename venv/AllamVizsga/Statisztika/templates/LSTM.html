@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-tooltip@0.10.0/bulma-tooltip.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-switch@0.9.0/bulma-switch.min.css">
-        <title>MLP konfiguráció</title>
+        <title>LSTM konfiguráció</title>
         <style>
             .info{
                 padding: 2px 10px;
@@ -61,32 +61,24 @@
     <body class="has-background-dark has-text-light" style="min-height: 100vh;">
         <section id="mlp" style="max-width: 800px; margin: auto; width: 90%;">
             <h1 class="title has-text-centered has-text-light">
-                MLP modell beállítása teszteléshez és előrejelzéshez
+                LSTM modell beállítása teszteléshez és előrejelzéshez
             </h1>
             <p class="has-text-justified">Az alábbi űrlapon adja meg az MLP modell paramétereit, majd kattintson az előrejelzések készítése gombra. A modell az összes beolvasott tesztadat érték száma szerint fogja előrejelzéseit elkészíteni.</p>
             <hr>
-            <form action="{% url 'MLPResults' %}" method="POST">
+            <form action="{% url 'LSTMResults' %}" method="POST">
                 {% csrf_token %}
                 {% for stat in statisztikak %}
                     <h3 class="has-text-centered subtitle has-text-light">{{ stat.idosor_nev }}</h3>
-                    <label for="{{ stat.idosor_nev }}_hidden_layers">Rejtett rétegek neuronjainak száma (pl. 12,12,12):</label>
-                    <input class="input" type="text" value="12,12,12" required name="{{ stat.idosor_nev }}_hidden_layers" id="{{ stat.idosor_nev }}_hidden_layers">
+
+                    <label for="{{ stat.namidosor_neve }}_units">Csomópontok száma : <span class="info"> ℹ️ 
+                        <span class="tooltip"> info here </span></span></label>
+                    <input class="input" type="number" value="50" min="1" max = 200 required name="{{ stat.idosor_nev }}_units" id="{{ stat.idosor_nev }}_units">
+                
+                    <label for="{{ stat.namidosor_neve }}_epochs">Epoch-ok száma : <span class="info"> ℹ️ 
+                        <span class="tooltip"> info here </span></span></label>
+                    <input class="input" type="number" value="200" min="1" max = 1000 required name="{{ stat.idosor_nev }}_epochs" id="{{ stat.idosor_nev }}_epochs">
+                
                     
-                   
-                    <label for="{{ stat.namidosor_neve }}_max_iters">Max iterációk száma: <span class="info"> ℹ️ 
-                        <span class="tooltip">Hány iterációt hajtson végre a tanítási algoritmus a súlyok optimalizálása során. Növelése segíthet az approximáció javításában, csökkentése az esetleges túltanítás elkerülésében.</span></span></label>
-                    <input class="input" type="number" value="2000" min="1" required name="{{ stat.idosor_nev }}_max_iters" id="{{ stat.idosor_nev }}_max_iters">
-
-                    
-                    <label for="{{ stat.idosor_nev }}_random_state_min">Random állapot kezdőérték: <i class="info">ℹ️ <span class="tooltip">Az algoritmus véletlenszerű súlyokkal kezd, ez az érték segít az eredmény reprodukálhatóságában. Különböző értékek más eredményt generálnak. Két szám között megkeresi azt, amelyik a legkisebb RRMSE-vel rendelkező előrejelzést adja. Ha tudja melyiket szeretné, állítsa mindkettőt ugyanarra a számra.</span></span></label> </i></label>
-                    <input class="input" type="number" value="42" min="1" max="100" name="{{ stat.idosor_nev }}_random_state_min" id="{{ stat.idosor_nev }}_random_state_min">
-                   
-                    <label for="{{ stat.idosor_nev }}_random_state_max">Random állapot utsolsó érték:</label>
-                    <input class="input" type="number" value="41" min="1"  max="100" name="{{ stat.idosor_nev }}_random_state_max" id="{{ stat.idosor_nev }}_random_state_max">
-
-                    <label for="{{ stat.idosor_nev }}_targetRRMSE">Cél RRMSE %-ban: <i class="info">ℹ️  <span class="tooltip">A kezdőérték keresés leáll, ha valamelyik modell előrejelzésének pontossága (RRMSE) eléri ezt a küszöböt.</span></span></label> </i></label>
-                    <input class="input" type="number" value="1" min="1"  max="100" name="{{ stat.idosor_nev }}_targetRRMSE" id="{{ stat.idosor_nev }}_targetRRMSE">
-
                     <label for="{{ stat.idosor_nev }}_scaler">Normalizálás: 
                         <i class="info">ℹ️  <span class="tooltip"><p>Az adatok normalizálása segít a modellnek könynebben felismerni a mintázatokat. </p><br>
                             <p>A standardizáció képlete: \( Z = \frac{X - \mu}{\sigma} \)</p><br>
@@ -95,10 +87,10 @@
                     </span></span></label></i></label>
 
                     <select class="input" id="{{ stat.idosor_nev }}_scaler" name="{{ stat.idosor_nev }}_scaler">
-                        <option selected  value="standard">Standard</option>
+                        <option  value="standard">Standard</option>
                         <option value="minmax">Min-Max</option>
                         <option value="robust">Robosztus</option>
-                        <option  value="-">Nincs</option>
+                        <option selected value="">Nincs</option>
                     </select>
 
                     <label for="{{ stat.idosor_nev }}_actFunction">Aktivációs függvény: <i class="info">ℹ️ <span class="tooltip">
@@ -118,7 +110,7 @@
 
                     </span></span></label> </i></label>
                     <select class="input" id="{{ stat.idosor_nev }}_actFunction" name="{{ stat.idosor_nev }}_actFunction">
-                        <option value="logistic">Logisztikus (szigmoid)</option>
+                        <option value="sigmoid">Logisztikus (szigmoid)</option>
                         <option selected value="relu">Rectified Linear Unit</option>
                         <option value="identity">Identity</option>
                         <option value="tanh">Tanh</option>
@@ -129,10 +121,7 @@
                         <i class="info">ℹ️<span class="tooltip">
                           - SGD: egyszerű, pár paraméteres optimalizálási algoritmus, amely a gradiensek alapján frissíti a paramétereket. A stochastic (véletlenszerű) jelző azt jelzi, hogy minden iterációban csak egy véletlenszerűen választott részletet (batch-et) használ a gradiens kiszámításához és a frissítéshez.
                            <br> - Hátrányok: Lassabb konvergencia és érzékenység a learning rate választására. <br>
-                        - LBFGS - kvázi-Newton módszer, ami egy lineáris optimalizálási algoritmus. 
-                        <br> - Előnyök: Hatékonyan kezelhető közepesen méretű adatokkal és paraméterekkel. A másodrendű információ használatával gyorsabban konvergálhat. <br>
-                        Hátránya: memóriaintenzív lehet nagy adatmennyiségek és paraméterek esetén. Nem mindig skálázódik jól nagy méretű problémákra.
-                        <br>
+
                         - ADAM: a kettő fentit kombinálja. <br>
                         - Előnyök: Jól működik sokféle feladattípusnál, és automatikusan beállítja a learning rate-et a paraméterekre nézve. Általában gyorsan konvergál és kevésbé érzékeny a learning rate választására.
                         <br>Hátrányok: Néhány esetben érzékeny lehet a zajos gradiensekre, és a paraméterek összetettebbek lehetnek.
@@ -142,22 +131,13 @@
                         </i></label>
                     <select class="input" id="{{ stat.idosor_nev }}_solver" name="{{ stat.idosor_nev }}_solver">
                         <option value="adam">Adaptive Moment Estimation (ADAM)</option>
-                        <option value="lbfgs">Limited-memory Broyden-Fletcher-Goldfarb-Shanno(LBFGS)</option>
                         <option selected value="sgd">Stochastic Gradient Descen (SGD)</option>
                     </select>
                     <br>
-                    <label for="{{ stat.idosor_nev }}_scaler">Tanítás független változója: <i class="info">ℹ️
-                        <span class="tooltip">Mit vegyen alapul (magyarázó változónak) az előrejelzésnél: korábbi értéket, vagy az időpontokat (év, hónap). </span></span>
-                    </i></label>
-                    <select class="input" id="{{ stat.idosor_nev }}_x_mode" name="{{ stat.idosor_nev }}_x_mode">
-                        <option value="delayed">n db Késleltetett érték</option>
-                        <option value="date">év - hónap párosok</option>
-                    </select>       
-                    <br>
-                    <label for="{{ stat.idosor_nev }}_n_delay">Késleltetett értékek: <i class="info">ℹ️
+                    <label for="{{ stat.idosor_nev }}_n_steps">Késleltetett értékek: <i class="info">ℹ️
                         <span class="tooltip">Csak akkor kell, ha fentebb ezt az opciót választotta. </span></span>
                     </i></label>
-                    <input class="input" type="number" value="3" min="1" max="10" name="{{ stat.idosor_nev }}_n_delay" id="{{ stat.idosor_nev }}_n_delay">
+                    <input class="input" type="number" value="3" min="1" max="10" name="{{ stat.idosor_nev }}_n_steps" id="{{ stat.idosor_nev }}_n_steps">
                     
                     {% endfor %}   
                     <br>    

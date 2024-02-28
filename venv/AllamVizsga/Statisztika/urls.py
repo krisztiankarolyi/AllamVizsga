@@ -7,5 +7,7 @@ urlpatterns = [
     path('arima', views.arima, name='arima'),
     path('Box-Jenkins', views.BoxJenkins, name="Box-Jenkins"),
     path('MLP', views.MLP, name="MLP"),
-    path('MLPResults', views.MLPResults, name="MLPResults"),
+    path('MLP_Results', views.MLPResults, name="MLPResults"),
+    path('LSTM', views.LSTM, name="LSTM"),
+    path('LSTM_Results', views.LSTMResults, name="LSTMResults"),
 ]
