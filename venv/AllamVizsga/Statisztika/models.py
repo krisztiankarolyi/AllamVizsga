@@ -18,20 +18,13 @@ from sklearn.neural_network import MLPRegressor
 
 
 class Stat :
-    def __init__(self, megye_nev, adatok, idoszakok):
-        self.megye_nev = megye_nev
+    def __init__(self, idosor_nev, adatok, idoszakok):
+        self.idosor_nev = idosor_nev
         self.adatok = adatok
         self.idoszakok = idoszakok
-     
         self.adf = {}; self.kpss = {}
-        self.aic = 0
         self.teszt_idoszakok = []
-        self.ARIMAbecslesek = []
-        self.MLPDiagram = None
-        self.ARIMADiagram = None
-        self.mse = 0
-        self.rrmse = 0
-        self.r_squared = 0
+
 
     def calculateStatistics(self):
         self.atlag = round(np.mean(self.adatok), 2)
@@ -49,36 +42,6 @@ class Stat :
     
     def setTesztIdoszakok(self, idoszakok: list):
         self.teszt_idoszakok = idoszakok
-
-    def setMLPDiagram(self, diagram):
-        self.MLPDiagram = diagram
-
-    def setARIMADiagram(self, diagram):
-        self.ARIMADiagram = diagram
-
-    def MSE(self, becslesek):
-        try:
-            n = len(self.teszt_adatok)
-            teszt_adatok_np = np.array(self.teszt_adatok)
-            becslesek_np = np.array(becslesek)
-            self.mse = np.sum((teszt_adatok_np - becslesek_np)**2) / n
-            return self.mse
-        except:
-            return -1   
-        
-    def RRMSE(self, becslesek):
-        try:
-            mse = self.MSE(becslesek)
-            mean_y = np.mean(self.teszt_adatok)
-            if mse < 0 or mean_y <= 0:
-                self.rrmse = np.sqrt(-1*(mse)) / mean_y
-            else:  
-                self.rrmse = np.sqrt(mse) / mean_y
-            return self.rrmse
-        
-        except Exception as e:
-            print(e)
-            return -1
 
     def Stationarity(self):
         adf_result = adfuller(self.adatok)
@@ -120,27 +83,14 @@ class Stat :
         
            
     def ARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
-        try:
-            p = int(p); q = int(q); d = int(d)
-            idosor = self.adatok
-            model = sm.tsa.ARIMA(idosor, order=(p, d, q))
-            model_fit = model.fit()
-            self.ARIMAbecslesek = model_fit.forecast(t)
-            self.aic= model_fit.aic
-            self.ARIMAbecsleseksZipped = zip(self.ARIMAbecslesek, self.teszt_adatok)
-            self.mse = self.MSE(self.ARIMAbecslesek)
-            self.rrmse = self.RRMSE(self.ARIMAbecslesek)
-            self.r_squared  = r2_score(self.teszt_adatok, self.ARIMAbecslesek)
-            return ([model_fit.summary(), self.ARIMAbecslesek])
-   
-        except Exception as e:
-            print(e)
+        self.ARIMA = ARIMA(p, d, q, t, self.adatok, self.teszt_adatok)
+        return self.ARIMA
         
     def plot_acf_and_pacf(self):
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False)
         fig.subplots_adjust(hspace=0.3)
-        plot_acf(self.adatok, lags=40, ax=ax1, title=f"Autokorreláció ({self.megye_nev})")
-        plot_pacf(self.adatok, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({self.megye_nev})")
+        plot_acf(self.adatok, lags=40, ax=ax1, title=f"Autokorreláció ({self.idosor_nev})")
+        plot_pacf(self.adatok, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({self.idosor_nev})")
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
         buffer.seek(0)
@@ -178,11 +128,13 @@ class Stat :
         self.mlp_model.train_model(self.X_train, self.y_train)
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
-        self.mlp_model.mse = self.MSE(self.mlp_model.predictions)
-        self.mlp_model.rrmse = self.RRMSE(self.mlp_model.predictions)
+        self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
 
     def split_sequence(self, sequence, n_steps):
             X, y = list(), list()
+            sequence = [round(i, 2) for i in sequence]
+
             for i in range(len(sequence)):
                 end_ix = i + n_steps
                 if end_ix > len(sequence)-1:
@@ -190,8 +142,8 @@ class Stat :
                 seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
                 X.append(seq_x)
                 y.append(seq_y)
-
             return np.array(X), np.array(y)
+    
     
     def get_month_number(self, month):
         months = {
@@ -219,8 +171,8 @@ class Stat :
 
             mlp_model.train_model(self.X_train, self.y_train)
             predictions = mlp_model.predict(self.X_test)
-            rrmse = self.RRMSE(predictions)
-            print(f"trying {self.megye_nev}'s MLP prediction with random state {random_state} --> RRMSE: {rrmse}")
+            rrmse = RRMSE(predictions, self.teszt_adatok)
+            print(f"trying {self.idosor_nev}'s MLP prediction with random state {random_state} --> RRMSE: {rrmse}")
 
             if rrmse < best_rrmse:
                 best_rrmse = rrmse
@@ -232,7 +184,30 @@ class Stat :
 
         self.random_state = best_random_state
         return best_random_state
-    
+
+class ARIMA:
+    def __init__(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10, adatok = [], teszt_adatok = []):
+
+        self.aic = 0
+        self.mse = 0
+        self.rrmse = 0
+        self.r_squared = 0
+        self.diagram = None
+        self.modelName = ""
+
+        self.p = int(p); self.q = int(q); self.d = int(d); self.t = int(t)
+
+        idosor = adatok
+        self.model = sm.tsa.ARIMA(idosor, order=(self.p, self.d, self.q))
+        self.model_fit = self.model.fit()
+
+        self.becslesek = self.model_fit.forecast(self.t)
+        self.aic = self.model_fit.aic
+
+        self.becsleseksZipped = zip(self.becslesek, teszt_adatok)
+        self.mse = MSE(teszt_adatok, self.becslesek)
+        self.rrmse = RRMSE(teszt_adatok, self.becslesek)
+        self.r_squared  = r2_score(teszt_adatok, self.becslesek) 
   
 class MLP:
     def __init__(self, test_data, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, scalerMode="standard", solver="adam"):
@@ -248,6 +223,7 @@ class MLP:
         self.mse = 0
         self.weights = []
         self.rrmse = 0
+        self.diagram = None
         self.accuracy = 0
         self.scalerMode = scalerMode
         self.scaler = StandardScaler()
@@ -263,16 +239,39 @@ class MLP:
         if self.scalerMode != "-":
             X_train = self.scaler.fit_transform(X_train)
         self.model.fit(X_train, y_train)
-        self.weights = [layer_weights for layer_weights in self.model.coefs_]  
+        self.weights = [layer_weights for layer_weights in self.model.coefs_]
 
     def predict(self, X_test):
         if self.scalerMode != "-":
             X_test = self.scaler.transform(X_test)    
-        self.weights = [layer_weights for layer_weights in self.model.coefs_]
         return self.model.predict(X_test)
+       
     
 
 class LSTM:
     def __init__(self):
         pass
 
+def MSE(becslesek, teszt_adatok,):
+    try:
+        n = len(teszt_adatok)
+        teszt_adatok_np = np.array(teszt_adatok)
+        becslesek_np = np.array(becslesek)
+        mse = np.sum((teszt_adatok_np - becslesek_np)**2) / n
+        return mse
+    except:
+        return -1   
+    
+def RRMSE(becslesek, teszt_adatok):
+    try:
+        mse = MSE(becslesek, teszt_adatok)
+        mean_y = np.mean(teszt_adatok)
+        if mse < 0 or mean_y <= 0:
+            rrmse = np.sqrt(-1*(mse)) / mean_y
+        else:  
+            rrmse = np.sqrt(mse) / mean_y
+        return rrmse
+    
+    except Exception as e:
+        print(traceback.format_exc())
+        return -1

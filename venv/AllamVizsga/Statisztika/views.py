@@ -69,7 +69,7 @@ def upload(request):
         teszt_adatok_df = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
         for i in statisztikak:
             for j in fejlec:
-                if i.megye_nev == j:
+                if i.idosor_nev == j:
                     i.setTesztAdatok(teszt_adatok_df[j].tolist()) 
                     i.setTesztIdoszakok(beolvasott_teszt_idoszakok)
 
@@ -101,28 +101,28 @@ def MLPResults(request):
     try:
         global statisztikak
         for megye in statisztikak:           
-            scaler =  request.POST[megye.megye_nev+'_scaler']
-            actFunction = request.POST[megye.megye_nev+'_actFunction']
-            maxIters = request.POST[megye.megye_nev+'_max_iters']
-            targetRRMSE = float(request.POST[megye.megye_nev+'_targetRRMSE'])/100
-            solver = request.POST[megye.megye_nev+"_solver"]
-            x_mode = request.POST[megye.megye_nev+"_x_mode"]
-            n_delays = int(request.POST[megye.megye_nev+"_n_delay"])
-            randomStateMin = int(request.POST[megye.megye_nev+'_random_state_min'])
-            randomStateMax = int(request.POST[megye.megye_nev+'_random_state_max'])
-            hidden_layers = tuple(map(int, request.POST[megye.megye_nev+'_hidden_layers'].split(',')))
+            scaler =  request.POST[megye.idosor_nev+'_scaler']
+            actFunction = request.POST[megye.idosor_nev+'_actFunction']
+            maxIters = request.POST[megye.idosor_nev+'_max_iters']
+            targetRRMSE = float(request.POST[megye.idosor_nev+'_targetRRMSE'])/100
+            solver = request.POST[megye.idosor_nev+"_solver"]
+            x_mode = request.POST[megye.idosor_nev+"_x_mode"]
+            n_delays = int(request.POST[megye.idosor_nev+"_n_delay"])
+            randomStateMin = int(request.POST[megye.idosor_nev+'_random_state_min'])
+            randomStateMax = int(request.POST[megye.idosor_nev+'_random_state_max'])
+            hidden_layers = tuple(map(int, request.POST[megye.idosor_nev+'_hidden_layers'].split(',')))
             megye.predict_with_mlp(actFunction, hidden_layers, int(maxIters), scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin, solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays) 
-            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.megye_nev+" MLP", megye.megye_nev+" mért"], 1, megye.megye_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
-            megye.setMLPDiagram(diagram)
+            megye.mlp_model.diagram = diagram
 
         adatsorNevek = []
         adatsorok = []
 
         for megye in statisztikak:
-            adatsorNevek.append(megye.megye_nev)
+            adatsorNevek.append(megye.idosor_nev)
             adatsorok.append(megye.teszt_adatok)
-            adatsorNevek.append(megye.megye_nev+" MLP")
+            adatsorNevek.append(megye.idosor_nev+" MLP")
             adatsorok.append(megye.mlp_model.predictions)
 
         diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
@@ -168,11 +168,11 @@ def arima(request):
         adatsorok =[] 
 
         for megye in statisztikak:
-            p = request.POST[megye.megye_nev+'_p']
-            q = request.POST[megye.megye_nev+'_q']
-            d = request.POST[megye.megye_nev+'_d']
+            p = request.POST[megye.idosor_nev+'_p']
+            q = request.POST[megye.idosor_nev+'_q']
+            d = request.POST[megye.idosor_nev+'_d']
             megye.teszt_idoszakok = beolvasott_teszt_idoszakok 
-            tipus = request.POST[megye.megye_nev+'_tipus']
+            tipus = request.POST[megye.idosor_nev+'_tipus']
             test_results = ""
             title = ""
             t = len(beolvasott_teszt_idoszakok)
@@ -180,31 +180,31 @@ def arima(request):
             test_results = megye.ARIMA(p, d, q, t)
 
             if tipus == "ar":
-                title = f"\n{megye.megye_nev} AR({p})\n"
+                title = f"\n{megye.idosor_nev} AR({p})\n"
 
             elif tipus == "ma":
-                title = f"\n{megye.megye_nev} MA({q})\n"
+                title = f"\n{megye.idosor_nev} MA({q})\n"
 
             elif tipus == "arma":
-                title = f"\n{megye.megye_nev} ARMA({p}, {q})\n"
+                title = f"\n{megye.idosor_nev} ARMA({p}, {q})\n"
             
             elif tipus == "arima":
-                title = f"\n{megye.megye_nev} ARIMA({p}, {d}, {q})\n"
+                title = f"\n{megye.idosor_nev} ARIMA({p}, {d}, {q})\n"
 
             if test_results:
-                megye.model = title
-                megyek.append(megye.megye_nev)
-                adatsorok.append(megye.ARIMAbecslesek)
-                diagram = AbrazolEgyben([megye.ARIMAbecslesek, megye.teszt_adatok], megye.teszt_idoszakok, [megye.model, megye.megye_nev+" mért"], 1, megye.megye_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+                megye.ARIMA.modelName = title
+                megyek.append(megye.idosor_nev)
+                adatsorok.append(megye.ARIMA.becslesek)
+                diagram = AbrazolEgyben([megye.ARIMA.becslesek, megye.teszt_adatok], megye.teszt_idoszakok, [megye.ARIMA.modelName, megye.idosor_nev+" mért"], 1, megye.idosor_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
                 diagram = base64.b64encode(diagram.read()).decode('utf-8')
-                megye.setARIMADiagram(diagram)
+                megye.ARIMA.diagram = diagram
     
         adatsorNevek = []
         for megye in statisztikak:
-            adatsorNevek.append(megye.megye_nev)
+            adatsorNevek.append(megye.idosor_nev)
             adatsorok.append(megye.teszt_adatok)
-            adatsorNevek.append(megye.model)
-            adatsorok.append(megye.ARIMAbecslesek)
+            adatsorNevek.append(megye.ARIMA.modelName)
+            adatsorok.append(megye.ARIMA.becslesek)
 
         diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')

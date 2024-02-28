@@ -43,7 +43,7 @@
                     <tr>
                         <th  class="has-background-info has-text-light">mutató/megye</th>
                         {% for stat in statisztikak %}
-                            <th  class="has-background-info has-text-light" >{{ stat.megye_nev }}</th>
+                            <th  class="has-background-info has-text-light" >{{ stat.idosor_nev }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -152,7 +152,7 @@
                     <tbody>
                         {% for megye in statisztikak %}
                         <tr>
-                            <td>{{ megye.megye_nev }}</td>
+                            <td>{{ megye.idosor_nev }}</td>
 
                             <td>{{ megye.adf.adf_stat }}</td>
                             <td>{{ megye.adf.p_value }}</td>
@@ -196,30 +196,30 @@
         <form action="{% url 'arima' %}" method="POST">
             {% csrf_token %}
         {% for megye in statisztikak %}
-            <h3 class="has-text-centered subtitle has-text-light">{{ megye.megye_nev }}</h3>
-                <label for="{{ megye.megye_nev }}_p">p</label>
-                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_p" id="{{ megye.megye_nev }}_p"> 
-                <label for="{{ megye.megye_nev }}_d">d </label>
-                <input class="input" type="number" value="0" min="0" required name="{{ megye.megye_nev  }}_d" id="{{ megye.megye_nev }}_d">
-                <label for="{{ megye.megye_nev }}_q">q</label>
-                <input class="input" type="number" value="1" min="0" required name="{{ megye.megye_nev  }}_q" id="{{ megye.megye_nev }}_q">
+            <h3 class="has-text-centered subtitle has-text-light">{{ megye.idosor_nev }}</h3>
+                <label for="{{ megye.idosor_nev }}_p">p</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.idosor_nev  }}_p" id="{{ megye.idosor_nev }}_p"> 
+                <label for="{{ megye.idosor_nev }}_d">d </label>
+                <input class="input" type="number" value="0" min="0" required name="{{ megye.idosor_nev  }}_d" id="{{ megye.idosor_nev }}_d">
+                <label for="{{ megye.idosor_nev }}_q">q</label>
+                <input class="input" type="number" value="1" min="0" required name="{{ megye.idosor_nev  }}_q" id="{{ megye.idosor_nev }}_q">
                 <br><br>
                 <div style="display: flex; flex-direction: row; align-items:center; justify-content: space-between;">
                 <div>
-                    <label for="{{ megye.megye_nev }}_ar">AR(p)</label>
-                    <input type="radio" checked name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ar" value="ar"> &nbsp;&nbsp;&nbsp;
+                    <label for="{{ megye.idosor_nev }}_ar">AR(p)</label>
+                    <input type="radio" checked name="{{ megye.idosor_nev }}_tipus" id="{{ megye.idosor_nev }}_ar" value="ar"> &nbsp;&nbsp;&nbsp;
                 </div>
                 <div>
-                    <label for="{{ megye.megye_nev }}_ma">MA(q)</label>
-                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_ma" value="ma">&nbsp;&nbsp;&nbsp;
+                    <label for="{{ megye.idosor_nev }}_ma">MA(q)</label>
+                    <input type="radio" name="{{ megye.idosor_nev }}_tipus" id="{{ megye.idosor_nev }}_ma" value="ma">&nbsp;&nbsp;&nbsp;
                 </div>
                 <div>
-                    <label for="{{ megye.megye_nev }}_arma">ARMA(p, q)</label>
-                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arma" value="arma">&nbsp;&nbsp;&nbsp;
+                    <label for="{{ megye.idosor_nev }}_arma">ARMA(p, q)</label>
+                    <input type="radio" name="{{ megye.idosor_nev }}_tipus" id="{{ megye.idosor_nev }}_arma" value="arma">&nbsp;&nbsp;&nbsp;
                 </div>
                 <div>
-                    <label for="{{ megye.megye_nev }}_arima">ARIMA(p,d, q)</label>
-                    <input type="radio" name="{{ megye.megye_nev }}_tipus" id="{{ megye.megye_nev }}_arima" value="arima">
+                    <label for="{{ megye.idosor_nev }}_arima">ARIMA(p,d, q)</label>
+                    <input type="radio" name="{{ megye.idosor_nev }}_tipus" id="{{ megye.idosor_nev }}_arima" value="arima">
                 </div>
                 </div>
                 <br><br>

@@ -46,7 +46,7 @@
                     <table class="table is-bordered">
                         <thead class="has-background-info">
                             <tr>
-                                <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.model}}</strong></td>
+                                <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.ARIMA.modelName}}</strong></td>
                             </tr>
                             <tr>
                                 <th>Becslések</th>
@@ -54,7 +54,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for becsles, mertadat in megye.ARIMAbecsleseksZipped %}
+                            {% for becsles, mertadat in megye.ARIMA.becsleseksZipped %}
                                 <tr>
                                     <td>{{ becsles | floatformat:2 }}</td>
                                     <td>{{ mertadat | floatformat:2 }}</td>
@@ -63,7 +63,7 @@
                                 <tr>
                                     <td colspan="2">
                                         <a target="_blank" href="data:image/png;base64,{{ megye.ARIMADiagram }}">
-                                            <img src="data:image/png;base64,{{ megye.ARIMADiagram }}">
+                                            <img src="data:image/png;base64,{{ megye.ARIMA.diagram }}">
                                         </a>
                                     </td>                                    
                                 </tr>
@@ -86,11 +86,11 @@
                 <tbody>
                     {% for megye in statisztikak %}
                     <tr>
-                        <td>{{ megye.model }}</td>
-                        <td>{{ megye.aic|floatformat:2 }}</td>
-                        <td>{{ megye.r_squared }}</td>
-                        <td>{{ megye.mse|floatformat:2 }}</td>
-                        <td>{{ megye.rrmse|floatformat:2 }}</td>
+                        <td>{{ megye.ARIMA.modelName }}</td>
+                        <td>{{ megye.ARIMA.aic|floatformat:2 }}</td>
+                        <td>{{ megye.ARIMA.r_squared }}</td>
+                        <td>{{ megye.ARIMA.mse|floatformat:2 }}</td>
+                        <td>{{ megye.ARIMA.rrmse|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
