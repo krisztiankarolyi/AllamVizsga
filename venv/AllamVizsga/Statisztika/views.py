@@ -126,18 +126,18 @@ def LSTMResults(request):
         diagram = base64.b64encode(diagram.read()).decode('utf-8')
         megye.lstm.diagram = diagram
 
-        adatsorNevek = []
-        adatsorok = []
-        for megye in statisztikak:
-            adatsorNevek.append(megye.idosor_nev)
-            adatsorok.append(megye.teszt_adatok)
-            adatsorNevek.append(megye.idosor_nev+" LSTM")
-            adatsorok.append(megye.lstm.predictions)
+    adatsorNevek = []
+    adatsorok = []
+    for megye in statisztikak:
+        adatsorNevek.append(megye.idosor_nev)
+        adatsorok.append(megye.teszt_adatok)
+        adatsorNevek.append(megye.idosor_nev+" LSTM")
+        adatsorok.append(megye.lstm.predictions)
 
-        diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
-        diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+    diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
+    diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
-        return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
+    return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
 
 def MLPResults(request):
     try:

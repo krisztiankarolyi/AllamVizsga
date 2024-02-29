@@ -123,17 +123,18 @@
         {% for megye in statisztikak %}
         <div class="flex">
                 <div class="code half has-text-light">Tanító párok: (amiből megtanulta a súlyokat) <br>
-                        <p>{{megye.lstm.printTraintSet | safe}}</p>
+                        <h2>{{megye.idosor_nev}}</h2>
+                    <p>{{megye.lstm.printTraintSet | safe}}</p>
                 </div>
         
                 <div class="code half has-text-light">Teszt párok: (amiket meg kellett jósolni) <br>
+                    <h2>{{megye.idosor_nev}}</h2>
                     <p>{{megye.lstm.printTestSet | safe}}</p>
-            </div>
-        </div>
-            
+                 </div>
         </div>
         <br>
         {% endfor %}
+    </div>
     </div>
     </div>
 </section>

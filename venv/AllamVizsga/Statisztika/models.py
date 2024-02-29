@@ -138,9 +138,12 @@ class Stat :
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
                            units: int = 64, n_steps: int = 1, input_dim = 100, loss="mse", n_features = 1, 
                            epochs: int = 200, verbose: int = 0):
+        
+        #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
         test_data = self.adatok[-n_steps:]  + self.teszt_adatok
+        learning_data = self.adatok[:-n_steps]
 
-        self.X_train, self.y_train = split_sequence(self.adatok, n_steps)
+        self.X_train, self.y_train = split_sequence(learning_data, n_steps)
         self.X_test, self.y_test = split_sequence(test_data, n_steps) 
 
         self.lstm = Vanilla_LSTM(self.X_train, self.y_train, self.X_test, self.y_test, activation = activation,  solver = solver, units=units, n_steps = n_steps,
@@ -267,6 +270,14 @@ class Vanilla_LSTM:
     def __init__(self,  x_train: list = [], y_train: list = [], x_test: list = [], y_test: list= [], units:int = 50, activation: str = "relu",  solver: str = "adam", scaler: str = "", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0):
         self.diagram = None
 
+        self.x_train = x_train; self.y_train= y_train
+        self.x_test = x_test; self.y_test = y_test
+        
+        self.model = Sequential()
+        self.model.add(LSTM(units=units, activation=activation, input_shape=(n_steps, n_features)))
+        self.model.add(Dense(1))
+        self.model.compile(optimizer=solver, loss=loss)
+        
         if(scaler == "minmax"):
             self.scaler = MinMaxScaler()
         elif scaler == "robust":
@@ -275,43 +286,41 @@ class Vanilla_LSTM:
             self.scaler = StandardScaler()
         else:
             self.scaler = None
-        
-        self.x_train = x_train; self.y_train= y_train
-        self.x_test = x_test; self.y_test = y_test
 
         # reshape from [samples, timesteps] into [samples, timesteps, features]
         self.x_train = self.x_train.reshape((self.x_train.shape[0], self.x_train.shape[1], n_features))
         self.x_test = self.x_test.reshape((self.x_test.shape[0], self.x_test.shape[1], n_features))
 
-        self.model = Sequential()
-        self.model.add(LSTM(units=units, activation=activation, input_shape=(n_steps, n_features)))
-        self.model.add(Dense(1))
-        self.model.compile(optimizer=solver, loss=loss)
-        self.model.fit(self.x_train, self.y_train, epochs=epochs, verbose=verbose)
-
         if(self.scaler is not None):
+            #Tanítóadat inputok inputok normalizálása
             normalized_data = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
             samples, time_steps, features = normalized_data.shape
             reshaped_data = normalized_data.reshape((samples, time_steps, features))
             self.x_train_Normalized = reshaped_data
-
+            
+            #Teszthalamz inputok normalizálása
             normalized_data = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
             samples, time_steps, features = normalized_data.shape
             reshaped_data = normalized_data.reshape((samples, time_steps, features))
             self.x_test_Normalized = reshaped_data
-            
+
+
+            # Tanítás és jóslat a normalizált inputokkal
+            self.model.fit(self.x_train_Normalized, self.y_train, epochs=epochs, verbose=verbose)
             self.predictions = self.model.predict(self.x_test_Normalized, verbose=0)
             self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
 
         else:
+            # Tanítás és jóslat a nyers inputokkal
+            self.model.fit(self.x_train, self.y_train, epochs=epochs, verbose=verbose)
             self.predictions = self.model.predict(self.x_test, verbose=0)
             self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
         
         self.forecastZipped = zip(self.predictions, self.y_test)
-
         self.mse = MSE(self.predictions, self.y_test)
         self.rrmse = RRMSE(self.predictions, self.y_test)
-    
+
+
     def printTraintSet(self):
         res = "<h1>training set: x == > y</h1>"
         for i in range(len(self.x_train)) :
@@ -320,9 +329,7 @@ class Vanilla_LSTM:
         return res
     
     def printTestSet(self):
-        res = "<h1>prediction set: x (input) == > y </h1> <br>"
-        if(self.scaler is not None):
-            res += "the learning data has been normalized <br>"
+        res = f"<h1> prediction set: x (input) == > y </h1> <br>"
         res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
         for i in range(len(self.x_test)) :
             res += f"{i+1}.: {self.x_test[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
