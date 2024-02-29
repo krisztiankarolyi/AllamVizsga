@@ -116,10 +116,11 @@ class Stat :
 
         else:
             # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
-            self.dependency = f"{n_delays} db Késleltetett érték"
+            #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
             test_data = self.adatok[-n_delays:]  + self.teszt_adatok
+            learning_data = self.adatok[:-n_delays]
 
-            self.X_train, self.y_train = split_sequence(self.adatok, n_delays)
+            self.X_train, self.y_train = split_sequence(learning_data, n_delays)
             self.X_test, self.y_test = split_sequence(test_data, n_delays)
 
 
@@ -127,7 +128,7 @@ class Stat :
         self.X_Test_Y_Test_Zipped = zip(self.X_test, self.y_test)
 
         self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
-        self.mlp_model = MLP(self.teszt_adatok, actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scalerMode=scaler, solver=solver)
+        self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
@@ -173,8 +174,7 @@ class Stat :
         best_rrmse = float(1000) 
 
         for random_state in range(random_state_min, random_state_max+1):
-            mlp_model = MLP(self.teszt_adatok, actFunction, hidden_layers, max_iters, random_state, scaler, solver=solver)
-
+            mlp_model = MLP(actFunction=actFunction, hidden_layers = hidden_layers, max_iters = max_iters, random_state = random_state, scaler = scaler, solver=solver)
             mlp_model.train_model(self.X_train, self.y_train)
             predictions = mlp_model.predict(self.X_test)
             rrmse = RRMSE(predictions, self.teszt_adatok)
@@ -230,8 +230,8 @@ class ARIMA:
         self.r_squared  = r2_score(teszt_adatok, self.becslesek) 
   
 class MLP:
-    def __init__(self, test_data, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, random_state=50, units: int = 50,scalerMode="standard", solver="adam"):
-        self.test_data = test_data
+    def __init__(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, 
+                 random_state=50, units: int = 50, scaler="standard", solver="adam"):
         self.hidden_layers = hidden_layers
         self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
@@ -245,14 +245,14 @@ class MLP:
         self.rrmse = 0
         self.diagram = None
         self.accuracy = 0
-        self.scalerMode = scalerMode
+        self.scalerMode = scaler
         self.scaler = StandardScaler()
         self.modelStr = self.NrofHiddenLayers * '{}, '
         self.modelStr = "("+self.modelStr.format(*hidden_layers)[:-1]+")"
 
-        if (scalerMode == "robust"):
+        if (scaler == "robust"):
             self.scaler = RobustScaler()
-        if (scalerMode == "minmax"):
+        if (scaler == "minmax"):
             self.scaler = MinMaxScaler()
 
     def train_model(self, X_train, y_train):
@@ -287,28 +287,23 @@ class Vanilla_LSTM:
         else:
             self.scaler = None
 
-        # reshape from [samples, timesteps] into [samples, timesteps, features]
+        # reshape from [samples, timesteps] into [samples, timesteps, features] for LSTM 
         self.x_train = self.x_train.reshape((self.x_train.shape[0], self.x_train.shape[1], n_features))
         self.x_test = self.x_test.reshape((self.x_test.shape[0], self.x_test.shape[1], n_features))
 
         if(self.scaler is not None):
-            #Tanítóadat inputok inputok normalizálása
-            normalized_data = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
-            samples, time_steps, features = normalized_data.shape
-            reshaped_data = normalized_data.reshape((samples, time_steps, features))
-            self.x_train_Normalized = reshaped_data
-            
-            #Teszthalamz inputok normalizálása
-            normalized_data = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
-            samples, time_steps, features = normalized_data.shape
-            reshaped_data = normalized_data.reshape((samples, time_steps, features))
-            self.x_test_Normalized = reshaped_data
+           # Tanítóadat inputok normalizálása
+            self.scaler_train = self.scaler.fit(self.x_train.reshape(-1, self.x_train.shape[-1]))
+            self.x_train_Normalized = self.scaler_train.transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
 
+            # Teszthalmaz inputok normalizálása
+            self.x_test_Normalized = self.scaler_train.transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
 
             # Tanítás és jóslat a normalizált inputokkal
             self.model.fit(self.x_train_Normalized, self.y_train, epochs=epochs, verbose=verbose)
             self.predictions = self.model.predict(self.x_test_Normalized, verbose=0)
             self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
+
 
         else:
             # Tanítás és jóslat a nyers inputokkal
@@ -335,6 +330,23 @@ class Vanilla_LSTM:
             res += f"{i+1}.: {self.x_test[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
 
         return res
+    
+    def printNormalizedTestSet(self):
+        res = f"<h1> Normalized prediction set: x (input) == > y </h1> <br>"
+        res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
+        for i in range(len(self.x_test_Normalized)) :
+            res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
+
+        return res
+    
+    def printNormalizedTrainSet(self):
+        res = f"<h1> Normalized training set: x (input) == > y </h1> <br>"
+        res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
+        for i in range(len(self.x_train_Normalized)) :
+            res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train[i]} <br>"
+
+        return res
+
 
 def MSE(becslesek, teszt_adatok,):
     try:

@@ -153,7 +153,9 @@ def MLPResults(request):
             randomStateMin = int(request.POST[megye.idosor_nev+'_random_state_min'])
             randomStateMax = int(request.POST[megye.idosor_nev+'_random_state_max'])
             hidden_layers = tuple(map(int, request.POST[megye.idosor_nev+'_hidden_layers'].split(',')))
-            megye.predict_with_mlp(actFunction, hidden_layers, int(maxIters), scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin, solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays) 
+            megye.predict_with_mlp(actFunction=actFunction, hidden_layers=hidden_layers, max_iters= int(maxIters),
+                                    scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin,
+                                      solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays) 
             diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" MLP", "", 2, 5, 0.5)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.mlp_model.diagram = diagram

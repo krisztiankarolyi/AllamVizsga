@@ -132,6 +132,18 @@
                     <p>{{megye.lstm.printTestSet | safe}}</p>
                  </div>
         </div>
+
+        <div class="flex">
+            <div class="code half has-text-light">Normalizált Tanító párok: (amiből megtanulta a súlyokat) <br>
+                    <h2>{{megye.idosor_nev}}</h2>
+               
+            </div>
+    
+            <div class="code half has-text-light">Normalizált Teszt párok: (amiket meg kellett jósolni) <br>
+                <h2>{{megye.idosor_nev}}</h2>
+                
+             </div>
+    </div>
         <br>
         {% endfor %}
     </div>
