@@ -162,15 +162,19 @@ def MLPResults(request):
 
         adatsorNevek = []
         adatsorok = []
+        joslatok = []
 
         for megye in statisztikak:
             adatsorNevek.append(megye.idosor_nev)
             adatsorok.append(megye.teszt_adatok)
             adatsorNevek.append(megye.idosor_nev+" MLP")
             adatsorok.append(megye.mlp_model.predictions)
+            joslatok.append(megye.mlp_model.forecastFutureValues)
 
         diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+
+        diagramJoslat = AbrazolEgyben([])
 
         return render(request, 'MLPForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
         
@@ -201,7 +205,7 @@ def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat=
 def createStatObjects(megyek, adatok, idoPontok):
     eredmenyek = []
     for i in range(len(megyek)):
-        statisztika = Stat(megyek[i], adatok[i], idoPontok)
+        statisztika = Stat(idosor_nev=megyek[i], adatok=adatok[i], idoszakok=idoPontok)
         eredmenyek.append(statisztika)
     return eredmenyek
 
@@ -221,7 +225,8 @@ def arima(request):
             title = ""
             t = len(beolvasott_teszt_idoszakok)
 
-            test_results = megye.ARIMA(p, d, q, t)
+            test_results = megye.predictARIMA(p, d, q, t)
+
 
             if tipus == "ar":
                 title = f"\n{megye.idosor_nev} AR({p})\n"

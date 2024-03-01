@@ -104,14 +104,16 @@
                     <th>Model</th>
                     <th>MSE</th>
                     <th>RRMSE</th>
+                    <th>MAPE</th>
                 </tr>
             </thead>
             <tbody>
                 {% for megye in statisztikak %}
                 <tr>
                     <td>{{ megye.idosor_nev }} MLP ({{ megye.mlp_model.modelStr }}, {{megye.mlp_model.model.n_layers_}} réteg)</td>
-                    <td>{{ megye.mlp_model.mse | floatformat:2 }}</td>
-                    <td>{{ megye.mlp_model.rrmse |floatformat:2 }}</td>
+                    <td>{{ megye.mlp_model.mse | floatformat:2 }} %</td>
+                    <td>{{ megye.mlp_model.rrmse |floatformat:2 }} %</td>
+                    <td>{{ megye.mlp_model.mape |floatformat:2 }} % </td>
                 </tr>
                 {% endfor %}
             </tbody>

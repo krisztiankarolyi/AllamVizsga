@@ -17,6 +17,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
 from keras.models import Sequential
+import pandas as pd
 from keras.layers import LSTM, Dense
 
 
@@ -25,6 +26,7 @@ class Stat :
         self.idosor_nev = idosor_nev
         self.adatok = adatok
         self.idoszakok = idoszakok
+        print("idoszakok", self.idoszakok)
         self.adf = {}; self.kpss = {}
         self.teszt_idoszakok = []
 
@@ -42,9 +44,12 @@ class Stat :
   
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
+     #   print(f"{self.idosor_nev} teszt: adatok: {self.teszt_adatok}")
+ 
     
     def setTesztIdoszakok(self, idoszakok: list):
         self.teszt_idoszakok = idoszakok
+        print(f"{self.idosor_nev} teszt: idoszakok: {self.teszt_idoszakok}")
 
     def Stationarity(self):
         adf_result = adfuller(self.adatok)
@@ -85,8 +90,9 @@ class Stat :
         return averages
         
            
-    def ARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
-        self.ARIMA = ARIMA(p, d, q, t, self.adatok, self.teszt_adatok)
+    def predictARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
+        t = len(self.teszt_adatok)
+        self.ARIMA = ARIMA(p, d, q, t, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok )
         return self.ARIMA
         
     def plot_acf_and_pacf(self):
@@ -112,7 +118,7 @@ class Stat :
             target = self.adatok + self.teszt_adatok
             data = [item.split() for item in data]
             data = [[int(item[0]), self.get_month_number(item[1])] for item in data]
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data, target, test_size=10, shuffle=False)
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data, target, test_size=len(self.teszt_adatok), shuffle=False)
 
         else:
             # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
@@ -130,10 +136,15 @@ class Stat :
         self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
         self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
+
+        print(f"kovetkezo 6 honapra valo elorejelzes: {self.mlp_model.forecastFutureValues(12, self.X_test)}")
+
+
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
         self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
 
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
@@ -206,28 +217,43 @@ def split_sequence(sequence, n_steps):
         return np.array(X), np.array(y)
 
 class ARIMA:
-    def __init__(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10, adatok = [], teszt_adatok = []):
+    def __init__(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10, adatok = [], teszt_adatok = [], idoszakok = [], teszt_idoszakok = []):
 
+        self.p = int(p)
+        self.q = int(q)
+        self.d = int(d)
+     
         self.aic = 0
         self.mse = 0
         self.rrmse = 0
+        self.mape = 0
         self.r_squared = 0
         self.diagram = None
         self.modelName = ""
 
-        self.p = int(p); self.q = int(q); self.d = int(d); self.t = int(t)
+        print("időszalok ARIMA", idoszakok)
 
-        idosor = adatok
-        self.model = sm.tsa.ARIMA(idosor, order=(self.p, self.d, self.q))
-        self.model_fit = self.model.fit()
+            # Ellenőrizd, hogy minden adatstruktúra nem üres és egyforma hosszú
+        if adatok is not None and teszt_adatok is not None and idoszakok is not None and teszt_idoszakok is not None:
+            if len(adatok) == len(idoszakok) and len(teszt_adatok) == len(teszt_idoszakok):
+                self.t = len(teszt_adatok)
+                # ARIMA modell illesztése
+                self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q), enforce_stationarity=True)
+                self.model_fit = self.model.fit()
 
-        self.becslesek = self.model_fit.forecast(self.t)
-        self.aic = self.model_fit.aic
+                # Jövőbeli értékek előrejelzése
+                self.becslesek = self.model_fit.forecast(steps=self.t)
+                self.aic = self.model_fit.aic
 
-        self.becsleseksZipped = zip(self.becslesek, teszt_adatok)
-        self.mse = MSE(teszt_adatok, self.becslesek)
-        self.rrmse = RRMSE(teszt_adatok, self.becslesek)
-        self.r_squared  = r2_score(teszt_adatok, self.becslesek) 
+                # Egyéb értékek kiszámolása
+                self.mse = MSE(teszt_adatok, self.becslesek)
+                self.rrmse = RRMSE(teszt_adatok, self.becslesek)
+                self.mape = MAPE(teszt_adatok, self.becslesek)
+                self.r_squared = r2_score(teszt_adatok, self.becslesek)
+            else:
+                print(f"Az adatstruktúrák hossza nem egyezik meg: \n teszt_adatok: {len(teszt_adatok)}, teszt időszakok: {len(teszt_idoszakok)} \n adatok: {len(adatok)}, idoszakok: {len(idoszakok)} ")
+        else:
+            print("Nem megfelelő adatstruktúra megadva.")
   
 class MLP:
     def __init__(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, 
@@ -243,12 +269,17 @@ class MLP:
         self.mse = 0
         self.weights = []
         self.rrmse = 0
+        self.mape = 0
         self.diagram = None
         self.accuracy = 0
         self.scalerMode = scaler
         self.scaler = StandardScaler()
         self.modelStr = self.NrofHiddenLayers * '{}, '
         self.modelStr = "("+self.modelStr.format(*hidden_layers)[:-1]+")"
+        self.x_test = []
+        self.y_test = []
+        self.x_train = []
+        self.y_train = []
 
         if (scaler == "robust"):
             self.scaler = RobustScaler()
@@ -258,13 +289,34 @@ class MLP:
     def train_model(self, X_train, y_train):
         if self.scalerMode != "-":
             X_train = self.scaler.fit_transform(X_train)
+        self.x_train = X_train
+        self.y_train = y_train
+
         self.model.fit(X_train, y_train)
         self.weights = [layer_weights for layer_weights in self.model.coefs_]
 
-    def predict(self, X_test):
-        if self.scalerMode != "-":
-            X_test = self.scaler.transform(X_test)    
+    def predict(self, X_test, normalize=True):
+        if self.scalerMode != "-" and normalize:
+            X_test = self.scaler.transform(X_test)   
+   
         return self.model.predict(X_test)
+    
+
+    def forecastFutureValues(self, n, x_test):
+        future_forecasts = []
+        input = x_test[-1].reshape(1, -1)  # Átalakítjuk a legutolsó  input értéket 2D formátumra
+
+        for i in range(n):
+            forecast = self.predict(input)[0]  # a predict 2d-s lisát ad vissza, 1 elemmel, mert csak 1 input van
+            future_forecasts.append(forecast) 
+            print(f"{i}. : {input} ---> {forecast}")
+            #csúsztatjuk egyel arréb toljuk az input elmeit, az utolsó a legutóbbi előrejelzett érték lesz
+            input = np.hstack((input[:, 1:], forecast.reshape(1, -1)))
+
+        return future_forecasts
+
+
+
        
 class Vanilla_LSTM:
     def __init__(self,  x_train: list = [], y_train: list = [], x_test: list = [], y_test: list= [], units:int = 50, activation: str = "relu",  solver: str = "adam", scaler: str = "", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0):
@@ -291,17 +343,25 @@ class Vanilla_LSTM:
         self.x_train = self.x_train.reshape((self.x_train.shape[0], self.x_train.shape[1], n_features))
         self.x_test = self.x_test.reshape((self.x_test.shape[0], self.x_test.shape[1], n_features))
 
-        if(self.scaler is not None):
-           # Tanítóadat inputok normalizálása
-            self.scaler_train = self.scaler.fit(self.x_train.reshape(-1, self.x_train.shape[-1]))
-            self.x_train_Normalized = self.scaler_train.transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
+        if self.scaler is not None:
+            # Tanítóadat inputok normalizálása
+            self.x_train_Normalized = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
+
+            # Tanító elvárt outputok normalizálása
+            self.y_train_normalized = self.scaler.fit_transform(self.y_train.reshape(-1, 1))
 
             # Teszthalmaz inputok normalizálása
-            self.x_test_Normalized = self.scaler_train.transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
+            self.x_test_Normalized = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
+
+            # Teszthalmaz elvárt outputok normalizálása
+            self.y_test_normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
 
             # Tanítás és jóslat a normalizált inputokkal
-            self.model.fit(self.x_train_Normalized, self.y_train, epochs=epochs, verbose=verbose)
+            self.model.fit(self.x_train_Normalized, self.y_train_normalized, epochs=epochs, verbose=verbose)
             self.predictions = self.model.predict(self.x_test_Normalized, verbose=0)
+
+            # a jóslatok visszaalakítása normál formáról
+            self.predictions = self.scaler.inverse_transform(self.predictions)
             self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
 
 
@@ -314,6 +374,8 @@ class Vanilla_LSTM:
         self.forecastZipped = zip(self.predictions, self.y_test)
         self.mse = MSE(self.predictions, self.y_test)
         self.rrmse = RRMSE(self.predictions, self.y_test)
+        self.mape = MAPE(self.predictions, y_test)
+        print(f"mape: {self.predictions} \n vs \n {self.y_test} ")
 
 
     def printTraintSet(self):
@@ -354,7 +416,7 @@ def MSE(becslesek, teszt_adatok,):
         teszt_adatok_np = np.array(teszt_adatok)
         becslesek_np = np.array(becslesek)
         mse = np.sum((teszt_adatok_np - becslesek_np)**2) / n
-        return mse
+        return mse * 100
     except:
         return -1   
     
@@ -366,8 +428,20 @@ def RRMSE(becslesek, teszt_adatok):
             rrmse = np.sqrt(-1*(mse)) / mean_y
         else:  
             rrmse = np.sqrt(mse) / mean_y
-        return rrmse
+        return rrmse*10
     
     except Exception as e:
         print(traceback.format_exc())
         return -1
+    
+def MAPE(becslesek, teszt_adatok):
+    if len(teszt_adatok) != len(becslesek):
+        raise ValueError("A becsült és valós értékek listáinak azonos hosszúnak kell lenniük.")
+
+    absolute_percentage_errors = []
+    for prediction, actual in zip(becslesek, teszt_adatok):
+        absolute_percentage_error = abs((actual - prediction) / actual) * 100
+        absolute_percentage_errors.append(absolute_percentage_error)
+
+    mean_absolute_percentage_error = sum(absolute_percentage_errors) / len(absolute_percentage_errors)
+    return mean_absolute_percentage_error
