@@ -146,19 +146,29 @@
                         <option selected value="sgd">Stochastic Gradient Descen (SGD)</option>
                     </select>
                     <br>
+
+                    <!----
                     <label for="{{ stat.idosor_nev }}_scaler">Tanítás független változója: <i class="info">ℹ️
                         <span class="tooltip">Mit vegyen alapul (magyarázó változónak) az előrejelzésnél: korábbi értéket, vagy az időpontokat (év, hónap). </span></span>
                     </i></label>
                     <select class="input" id="{{ stat.idosor_nev }}_x_mode" name="{{ stat.idosor_nev }}_x_mode">
                         <option value="delayed">n db Késleltetett érték</option>
                         <option value="date">év - hónap párosok</option>
-                    </select>       
+                    </select>       --->
                     <br>
-                    <label for="{{ stat.idosor_nev }}_n_delay">Késleltetett értékek: <i class="info">ℹ️
-                        <span class="tooltip">Csak akkor kell, ha fentebb ezt az opciót választotta. </span></span>
-                    </i></label>
+                    <input type="hidden" name="{{ stat.idosor_nev }}_x_mode" value="delayed">
+                   <label for="{{ stat.idosor_nev }}_n_delay">Késleltetett értékek: <i class="info">ℹ️
+                        <span class="tooltip">Hány darab korábbi megfigyelésből (input) következzen egy elvárt kimenet? Pl. n = 3, akkor: [2.1, 2.2, 2.24] --> 2.28 </span></span>
+                    </i></label>  
+
                     <input class="input" type="number" value="3" min="1" max="10" name="{{ stat.idosor_nev }}_n_delay" id="{{ stat.idosor_nev }}_n_delay">
                     
+                    <label for="{{ stat.idosor_nev }}_n_pred">Kért előrejelzések száma a tesztadatokon túl: <i class="info">ℹ️
+                        <span class="tooltip">A legjobban konvergált modell megpróbál ennyi darab jövőbeni megfigyelést megjósolni. <br>
+                             Ilyenkor a modell az adatokból nézett legutolsó input mintára előrejelez egyet, <br>
+                              majd az előrejelzett érték kerül az input minta utolsó elemének helyére, és így tovább.  </span></span>
+                    </i></label>
+                    <input class="input" type="number" value="6" min="0" max="10" name="{{ stat.idosor_nev }}_n_pred" id="{{ stat.idosor_nev }}_n_pred">
                     {% endfor %}   
                     <br>    
                 <input type="submit" class="button is-info" style="width: 100%;" value="MLP előrejelzések készítése">

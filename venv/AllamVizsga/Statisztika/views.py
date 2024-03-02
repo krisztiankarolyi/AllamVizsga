@@ -18,14 +18,14 @@ from django.shortcuts import redirect
 
 global statisztikak 
 
-def home(request):
-    messages.error(request, 'Nem lett adatforrás fájl feltöltve!')
-    return render(request, 'home.html')
-
 def upload(request):
+    messages.error(request, 'Nem lett adatforrás fájl feltöltve!')
+    return render(request, 'upload.html')
+
+def home(request):
     if 'file' not in request.FILES or 'suruseg' not in request.POST or 'sheet' not in request.POST:
         messages.error(request, 'Hiányzó paraméter(ek) (sűrűség/munkalap nevek)!')
-        return redirect('home')
+        return redirect('upload')
 
     uploaded_file = request.FILES['file']
     suruseg = int(request.POST['suruseg'])
@@ -38,7 +38,7 @@ def upload(request):
 
     elif 'file_teszt' not in request.FILES:
         messages.error(request, 'Nem lett adatforrás fájl feltöltve az előrjelzésekhez!')
-        return redirect('home')
+        return redirect('upload')
     
     else:
         teszt_adatok = request.FILES['file_teszt']
@@ -73,12 +73,12 @@ def upload(request):
                     i.setTesztAdatok(teszt_adatok_df[j].tolist()) 
                     i.setTesztIdoszakok(beolvasott_teszt_idoszakok)
 
-        return render(request, 'upload.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
+        return render(request, 'home.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
     
     except Exception:
         print(traceback.format_exc())
         messages.error(request, 'Nem található a munkalap!')
-        return redirect('home')
+        return redirect('upload')
 
 
 def BoxJenkins(request):
