@@ -81,6 +81,8 @@
                         <th>R^2</th>
                         <th>MSE</th>
                         <th>RRMSE</th>
+                        <th>RRMSE</th>
+                        <th>MAPE</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,8 +91,9 @@
                         <td>{{ megye.ARIMA.modelName }}</td>
                         <td>{{ megye.ARIMA.aic|floatformat:2 }}</td>
                         <td>{{ megye.ARIMA.r_squared }}</td>
-                        <td>{{ megye.ARIMA.mse|floatformat:2 }}</td>
-                        <td>{{ megye.ARIMA.rrmse|floatformat:2 }}</td>
+                        <td>{{ megye.ARIMA.mse|floatformat:2 }} %</td>
+                        <td>{{ megye.ARIMA.rrmse|floatformat:2 }} %</td>
+                        <td>{{ megye.ARIMA.mape floatformat:2 }} %</td>
                     </tr>
                     {% endfor %}
                 </tbody>

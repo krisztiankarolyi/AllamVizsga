@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
-    <title>MLP Előrejelzések</title>
+    <title>LSTM Előrejelzések</title>
     <style>
         img:hover{border: 2px solid crimson;}
         .tables{
@@ -134,18 +134,6 @@
                     <p>{{megye.lstm.printTestSet | safe}}</p>
                  </div>
         </div>
-
-        <div class="flex">
-            <div class="code half has-text-light">Normalizált Tanító párok: (amiből megtanulta a súlyokat) <br>
-                    <h2>{{megye.idosor_nev}}</h2>
-               
-            </div>
-    
-            <div class="code half has-text-light">Normalizált Teszt párok: (amiket meg kellett jósolni) <br>
-                <h2>{{megye.idosor_nev}}</h2>
-                
-             </div>
-    </div>
         <br>
         {% endfor %}
     </div>

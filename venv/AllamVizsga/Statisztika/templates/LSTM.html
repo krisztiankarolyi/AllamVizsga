@@ -67,9 +67,9 @@
             <hr>
             <form action="{% url 'LSTMResults' %}" method="POST">
                 {% csrf_token %}
-                {% for stat in statisztikak %}
-                    <h3 class="has-text-centered subtitle has-text-light">{{ stat.idosor_nev }}</h3>
-
+                {% for stat in statisztikak %} 
+                <br> <br>
+                    <h3 class="has-text-centered subtitle has-text-light">{{ stat.idosor_nev }}</h3> 
                     <label for="{{ stat.namidosor_neve }}_units">Csomópontok száma : <span class="info"> ℹ️ 
                         <span class="tooltip"> info here </span></span></label>
                     <input class="input" type="number" value="50" min="1" max = 200 required name="{{ stat.idosor_nev }}_units" id="{{ stat.idosor_nev }}_units">
@@ -105,15 +105,17 @@
                         \[ \text{ReLu}(x) = \max(0, x) \]
                         <img src="https://www.researchgate.net/publication/370465617/figure/fig2/AS:11431281155101569@1683057835840/Activation-function-ReLu-ReLu-Rectified-Linear-Activation.png">
 
-                        \[ \text{Identitás}(x) = x \]
+                        \[ \text{lineáris}(x) = x \]
                         nem változtat a bemeneten. 
 
                     </span></span></label> </i></label>
                     <select class="input" id="{{ stat.idosor_nev }}_actFunction" name="{{ stat.idosor_nev }}_actFunction">
                         <option value="sigmoid">Logisztikus (szigmoid)</option>
                         <option selected value="relu">Rectified Linear Unit</option>
-                        <option value="identity">Identity</option>
+                        <option value="linear">Linear</option>
                         <option value="tanh">Tanh</option>
+                        <option value="softmax">Softmax</option>
+        
                     </select>
                     <br>
 
@@ -134,14 +136,22 @@
                         <option selected value="sgd">Stochastic Gradient Descen (SGD)</option>
                     </select>
                     <br>
-                    <label for="{{ stat.idosor_nev }}_n_steps">Késleltetett értékek: <i class="info">ℹ️
-                        <span class="tooltip">Csak akkor kell, ha fentebb ezt az opciót választotta. </span></span>
-                    </i></label>
+                    <input type="hidden" name="{{ stat.idosor_nev }}_x_mode" value="delayed">
+                    <label for="{{ stat.idosor_nev }}_n_delay">Késleltetett értékek: <i class="info">ℹ️
+                         <span class="tooltip">Hány darab korábbi megfigyelésből (input) következzen egy elvárt kimenet? <br>Pl. n = 3, akkor: [2.1, 2.2, 2.24] --> 2.28 </span></span>
+                     </i></label>  
                     <input class="input" type="number" value="3" min="1" max="10" name="{{ stat.idosor_nev }}_n_steps" id="{{ stat.idosor_nev }}_n_steps">
                     
+                    <label for="{{ stat.idosor_nev }}_n_pred">Kért előrejelzések száma a tesztadatokon túl: <i class="info">ℹ️
+                        <span class="tooltip">A legjobban konvergált modell megpróbál ennyi darab jövőbeni megfigyelést megjósolni. <br>
+                             Ilyenkor a modell az adatokból nézett legutolsó input mintára előrejelez egyet, <br>
+                              majd az előrejelzett érték kerül az input minta utolsó elemének helyére, és így tovább.  </span></span>
+                    </i></label>
+                    <input class="input" type="number" value="0" min="0" max="12" name="{{ stat.idosor_nev }}_n_pred" id="{{ stat.idosor_nev }}_n_pred">
+
                     {% endfor %}   
-                    <br>    
-                <input type="submit" class="button is-info" style="width: 100%;" value="MLP előrejelzések készítése">
+                    <br>    <br>
+                <input type="submit" class="button is-info" style="width: 100%;" value="LSTM modellek és előrejelzések készítése">
             </form>
             <br><br>
         </section>

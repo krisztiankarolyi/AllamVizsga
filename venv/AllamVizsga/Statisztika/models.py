@@ -89,7 +89,24 @@ class Stat :
         averages["winter"] /= winterCount; averages["spring"] /= springCount; averages["summer"] /= summerCount; averages["autumn"] /= AutumnCount
         return averages
         
-           
+    def autocorrelationPlot(self):
+        buffer = io.BytesIO()
+   
+        fig, ax = plt.subplots()
+        pd.plotting.autocorrelation_plot(self.adatok, ax=ax)
+        plt.title(self.idosor_nev)
+        # PNG buffer létrehozása
+        buffer = io.BytesIO()
+        # Diagram mentése a PNG bufferbe
+        plt.savefig(buffer, format='png')
+
+        # Buffer tartalmának elérése
+        buffer.seek(0)
+       # plt.close()
+        encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        return encoded_image
+
     def predictARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
         t = len(self.teszt_adatok)
         self.ARIMA = ARIMA(p, d, q, t, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok )
@@ -106,7 +123,7 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
  
-    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3):
+    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3, n_pred=6):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
             return          
@@ -136,9 +153,8 @@ class Stat :
         self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
         self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
-
-        print(f"kovetkezo 6 honapra valo elorejelzes: {self.mlp_model.forecastFutureValues(12, self.X_test)}")
-
+        
+        self.futureforecasts_y, self.futureforecasts_x = self.mlp_model.forecastFutureValues(n_pred, self.X_test)
 
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
@@ -149,7 +165,7 @@ class Stat :
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
                            units: int = 64, n_steps: int = 1, input_dim = 100, loss="mse", n_features = 1, 
-                           epochs: int = 200, verbose: int = 0):
+                           epochs: int = 200, verbose: int = 0, n_pred:int = 6 ):
         
         #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
         test_data = self.adatok[-n_steps:]  + self.teszt_adatok
@@ -159,9 +175,7 @@ class Stat :
         self.X_test, self.y_test = split_sequence(test_data, n_steps) 
 
         self.lstm = Vanilla_LSTM(self.X_train, self.y_train, self.X_test, self.y_test, activation = activation,  solver = solver, units=units, n_steps = n_steps,
-        n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose)
-
-    
+        n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred)
     
     def get_month_number(self, month):
         months = {
@@ -222,7 +236,6 @@ class ARIMA:
         self.p = int(p)
         self.q = int(q)
         self.d = int(d)
-     
         self.aic = 0
         self.mse = 0
         self.rrmse = 0
@@ -231,19 +244,31 @@ class ARIMA:
         self.diagram = None
         self.modelName = ""
 
-        print("időszalok ARIMA", idoszakok)
-
-            # Ellenőrizd, hogy minden adatstruktúra nem üres és egyforma hosszú
         if adatok is not None and teszt_adatok is not None and idoszakok is not None and teszt_idoszakok is not None:
             if len(adatok) == len(idoszakok) and len(teszt_adatok) == len(teszt_idoszakok):
                 self.t = len(teszt_adatok)
                 # ARIMA modell illesztése
-                self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q), enforce_stationarity=True)
+                self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q))
                 self.model_fit = self.model.fit()
+                self.aic = self.model_fit.aic
 
                 # Jövőbeli értékek előrejelzése
-                self.becslesek = self.model_fit.forecast(steps=self.t)
-                self.aic = self.model_fit.aic
+                history = [x for x in adatok]
+                predictions = list()
+            
+                # walk-forward validation
+                for t in range(len(teszt_adatok)):
+                    model = sm.tsa.ARIMA(history, order=(self.p, self.d, self.q))
+                    model_fit = model.fit()
+                    output = model_fit.forecast()
+                    yhat = output[0]
+                    predictions.append(yhat)
+                    obs = teszt_adatok[t]
+                    history.append(obs)
+                  #  print('predicted=%f, expected=%f' % (yhat, obs))
+                
+                self.becslesek = predictions
+                self.becsleseksZipped  = zip(predictions, teszt_adatok)
 
                 # Egyéb értékek kiszámolása
                 self.mse = MSE(teszt_adatok, self.becslesek)
@@ -304,27 +329,28 @@ class MLP:
 
     def forecastFutureValues(self, n, x_test):
         future_forecasts = []
+        x_axis = []
         input = x_test[-1].reshape(1, -1)  # Átalakítjuk a legutolsó  input értéket 2D formátumra
 
         for i in range(n):
             forecast = self.predict(input)[0]  # a predict 2d-s lisát ad vissza, 1 elemmel, mert csak 1 input van
             future_forecasts.append(forecast) 
-            print(f"{i}. : {input} ---> {forecast}")
+            print(f"{i+1}. : {input} ---> {forecast}")
+            x_axis.append(f"{i+1}. jóslat")
             #csúsztatjuk egyel arréb toljuk az input elmeit, az utolsó a legutóbbi előrejelzett érték lesz
             input = np.hstack((input[:, 1:], forecast.reshape(1, -1)))
 
-        return future_forecasts
-
-
-
-       
+        print(f"future firecast: x={x_axis}, \n y={future_forecasts}")
+        return future_forecasts, x_axis
+          
 class Vanilla_LSTM:
-    def __init__(self,  x_train: list = [], y_train: list = [], x_test: list = [], y_test: list= [], units:int = 50, activation: str = "relu",  solver: str = "adam", scaler: str = "", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0):
-        self.diagram = None
-
-        self.x_train = x_train; self.y_train= y_train
-        self.x_test = x_test; self.y_test = y_test
+    def __init__(self,  x_train: list = [], y_train: list = [], x_test: list = [], y_test: list= [], units:int = 50, activation: str = "relu", 
+                  solver: str = "adam", scaler: str = "", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0, n_pred:int = 6):
         
+        self.diagram = None; self.epochs = epochs; self.verbose = verbose; self.activation = activation; self.solver = solver; self.n_steps = n_steps; self.loss = loss; self.units = units; self.n_pred = n_pred; self.scalerStr = scaler.strip();
+        
+        print(f"SKÁLÁZÁSI MÓD: { self.scalerStr}")
+
         self.model = Sequential()
         self.model.add(LSTM(units=units, activation=activation, input_shape=(n_steps, n_features)))
         self.model.add(Dense(1))
@@ -340,75 +366,131 @@ class Vanilla_LSTM:
             self.scaler = None
 
         # reshape from [samples, timesteps] into [samples, timesteps, features] for LSTM 
-        self.x_train = self.x_train.reshape((self.x_train.shape[0], self.x_train.shape[1], n_features))
-        self.x_test = self.x_test.reshape((self.x_test.shape[0], self.x_test.shape[1], n_features))
+        self.y_train = y_train; self.y_test = y_test; self.x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], n_features)); self.x_test =  x_test.reshape((x_test.shape[0], x_test.shape[1], n_features))    
 
-        if self.scaler is not None:
-            # Tanítóadat inputok normalizálása
-            self.x_train_Normalized = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
-
-            # Tanító elvárt outputok normalizálása
-            self.y_train_normalized = self.scaler.fit_transform(self.y_train.reshape(-1, 1))
-
-            # Teszthalmaz inputok normalizálása
-            self.x_test_Normalized = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
-
-            # Teszthalmaz elvárt outputok normalizálása
-            self.y_test_normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
-
-            # Tanítás és jóslat a normalizált inputokkal
-            self.model.fit(self.x_train_Normalized, self.y_train_normalized, epochs=epochs, verbose=verbose)
-            self.predictions = self.model.predict(self.x_test_Normalized, verbose=0)
-
-            # a jóslatok visszaalakítása normál formáról
-            self.predictions = self.scaler.inverse_transform(self.predictions)
-            self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
-
-
-        else:
-            # Tanítás és jóslat a nyers inputokkal
-            self.model.fit(self.x_train, self.y_train, epochs=epochs, verbose=verbose)
-            self.predictions = self.model.predict(self.x_test, verbose=0)
-            self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
+        self.trainModel()
+        self.predict()      
+        self.futureforecasts_y, self.futureforecasts_x = self.forecastFutureValues()
         
         self.forecastZipped = zip(self.predictions, self.y_test)
         self.mse = MSE(self.predictions, self.y_test)
         self.rrmse = RRMSE(self.predictions, self.y_test)
         self.mape = MAPE(self.predictions, y_test)
-        print(f"mape: {self.predictions} \n vs \n {self.y_test} ")
+
+
+    def trainModel(self):  # betanítás
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+            # Tanítóadat inputok normalizálása
+            self.x_train_Normalized = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
+            # Tanító elvárt outputok normalizálása
+            self.y_train_normalized = self.scaler.fit_transform(self.y_train.reshape(-1, 1))
+            # Teszthalmaz inputok normalizálása
+            self.x_test_Normalized = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
+            # Teszthalmaz elvárt outputok normalizálása
+            self.y_test_normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
+
+            # Tanítás a normalizált inputokkal
+            self.model.fit(self.x_train_Normalized, self.y_train_normalized, epochs=self.epochs, verbose=self.verbose)
+        
+        else:
+             # Tanítás a sima inputokkal
+            self.model.fit(self.x_train, self.y_train, epochs = self.epochs, verbose = self.verbose)
+
+    
+    def predict(self): # előrejelzés a tesztadatokra
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+        #Ha az inputok normalizálva voltak, akkor a kimenetet vissza kell alakitnai normalformarol
+            self.predictions = self.model.predict(self.x_test_Normalized, verbose=self.verbose)
+            self.predictions = self.scaler.inverse_transform(self.predictions)
+            self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
+     
+        else:
+            self.predictions = self.model.predict(self.x_test, verbose=self.verbose)
+            self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
+    
+    
+    def predictSingle(self, input): #előrejelzés 1db inputra (forecastFutureValues használja)
+        predictions = self.model.predict(input, verbose=self.verbose)
+
+        # Ha az inputok normalizálva voltak, akkor a kimenetet vissza kell alakítani normalformára
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+            print("\n \n a modell vissza normalizálja a jósaltokat  \n \n}")
+            prediction_normalized = predictions
+            prediction = self.scaler.inverse_transform(predictions)
+        else:
+            prediction = predictions
+            prediction_normalized = prediction
+
+        prediction = [round(item, 2) for sublist in prediction for item in sublist]
+        prediction_normalized = [round(item, 2) for sublist in prediction_normalized for item in sublist]
+
+        return prediction[0], prediction_normalized[0]
+
+
+    def forecastFutureValues(self): # előrejelzás a tesztadatokon túl, az utolsó input mintázat alapján, majd mindig frissítve az utolsó értéket a legutóbbi jóslatra
+        future_forecasts = []
+        x_axis = []
+        
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+            input = [self.x_test_Normalized[-1]]
+            print("\n \n a modell normalizált adatokkal jósol  \n \n}")
+        else:
+            input = [self.x_test[-1]]
+            print("\n \n a modell módosítatlan adatokkal jósol  \n \n}")
+        
+        for i in range(self.n_pred):
+            forecast, forecastNormalized = self.predictSingle(input) 
+            future_forecasts.append(forecast) 
+
+            print(f"{i+1}. : {input} ---> {forecast}")
+            x_axis.append(f"{i+1}. jóslat")
+            # egyel arréb toljuk az input elmeit, az utolsó a legutóbbi előrejelzett érték lesz
+            input = [Slide(input[0], forecastNormalized)]
+
+        print(f"future forecast: x={x_axis}, \n y={future_forecasts}")
+        return future_forecasts, x_axis
+
 
 
     def printTraintSet(self):
         res = "<h1>training set: x == > y</h1>"
-        for i in range(len(self.x_train)) :
-            res += f"{i+1}.: {self.x_train[i]} ==> {self.y_train[i]} <br>"
-        
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+            for i in range(len(self.x_train)) :
+                res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train_normalized[i]} ({self.y_train[i]}) <br>"
+        else:
+            for i in range(len(self.x_train)) :
+                res += f"{i+1}.: {self.x_train[i]} ==> {self.y_train[i]} <br>"
+
         return res
     
     def printTestSet(self):
         res = f"<h1> prediction set: x (input) == > y </h1> <br>"
         res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
-        for i in range(len(self.x_test)) :
-            res += f"{i+1}.: {self.x_test[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
-
+        if self.scaler is not None and  self.scalerStr != "" and self.scalerStr != "-":
+            for i in range(len(self.x_test_Normalized)) :
+                res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test_normalized[i]} ({self.y_test[i]}), joslat: {self.predictions[i]} <br>"
+        else:
+            for i in range(len(self.x_test)) :
+                res += f"{i+1}.: {self.x_test[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
+        
         return res
     
-    def printNormalizedTestSet(self):
-        res = f"<h1> Normalized prediction set: x (input) == > y </h1> <br>"
-        res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
-        for i in range(len(self.x_test_Normalized)) :
-            res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test[i]}, joslat: {self.predictions[i]} <br>"
 
-        return res
-    
-    def printNormalizedTrainSet(self):
-        res = f"<h1> Normalized training set: x (input) == > y </h1> <br>"
-        res = f"MSE = {self.mse}, RRMSE = {self.rrmse} <br>"
-        for i in range(len(self.x_train_Normalized)) :
-            res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train[i]} <br>"
+def Slide(input_array, new_value):
+    # Ellenőrizze, hogy a bemeneti adatszerkezet egy 2D Numpy tömb
+    if not isinstance(input_array, np.ndarray) or input_array.ndim != 2:
+        raise ValueError("A bemeneti adatszerkezetnek egy 2D Numpy tömbnek kell lennie.")
 
-        return res
+    # Másolat készítése a bemeneti adatszerkezetről
+    modified_array = np.copy(input_array)
 
+    # Az első n-1 elemet egyel előrébb csúsztatja
+    modified_array[:-1] = modified_array[1:]
+
+    # Az utolsó elem cseréje a második paraméterként kapott értékre
+    modified_array[-1] = new_value
+
+    return modified_array
 
 def MSE(becslesek, teszt_adatok,):
     try:

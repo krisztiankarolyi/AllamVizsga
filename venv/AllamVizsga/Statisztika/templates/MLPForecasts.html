@@ -173,13 +173,13 @@
         <div class="flex">
             <div class="code half has-text-light">Tanító párok: (amiből megtanulta a súlyokat) <br>
                 {% for x_train, y_train in megye.X_Train_Y_Train_Zipped %}
-                    <p>{{x_train}} --> {{y_train}}</p>
+                    <p>{{ forloop.counter }}.  {{x_train}} --> {{y_train}}</p>
                 {% endfor %}
             </div>
     
             <div class="code  half has-text-light">Teszt párok (amiket meg kell jósoljon): <br>
                 {% for x_test, y_test in megye.X_Test_Y_Test_Zipped %}
-                    <p>{{x_test}} --> {{y_test}}</p>
+                    <p>{{ forloop.counter }}.  {{x_test}} --> {{y_test}}</p>
                 {% endfor %}
             </div>
         </div>
