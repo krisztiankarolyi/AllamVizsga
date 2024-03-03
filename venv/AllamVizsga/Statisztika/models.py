@@ -91,18 +91,13 @@ class Stat :
         
     def autocorrelationPlot(self):
         buffer = io.BytesIO()
-   
         fig, ax = plt.subplots()
         pd.plotting.autocorrelation_plot(self.adatok, ax=ax)
         plt.title(self.idosor_nev)
-        # PNG buffer létrehozása
         buffer = io.BytesIO()
-        # Diagram mentése a PNG bufferbe
         plt.savefig(buffer, format='png')
-
-        # Buffer tartalmának elérése
         buffer.seek(0)
-       # plt.close()
+        plt.close()
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         return encoded_image
@@ -120,8 +115,35 @@ class Stat :
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
         buffer.seek(0)
+        plt.close()
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
+
+    def distributionPlot(self):
+        # Eredeti értékek hisztogramja
+        plt.subplot(2, 1, 1)
+        plt.hist(self.adatok, bins=30, color='skyblue', edgecolor='black')
+        plt.xlabel('Értékek')
+        plt.ylabel('Gyakoriság')
+        plt.title(f"{self.idosor_nev} Hisztogram")
+
+        # Logaritmizált értékek hisztogramja
+        plt.subplot(2, 1, 2)
+        log_adatok = np.log(self.adatok)  # Logaritmizálás
+        plt.hist(log_adatok, bins=30, color='skyblue', edgecolor='black')
+        plt.xlabel('Logaritmizált értékek')
+        plt.ylabel('Gyakoriság')
+        plt.title(f"{self.idosor_nev} Logaritmizált Hisztogram")
+
+        plt.tight_layout()  # Automatikus elrendezés
+
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        plt.close()
+        encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return encoded_image
+        
  
     def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3, n_pred=6):
         if not self.teszt_adatok:
@@ -518,7 +540,8 @@ def RRMSE(becslesek, teszt_adatok):
     
 def MAPE(becslesek, teszt_adatok):
     if len(teszt_adatok) != len(becslesek):
-        raise ValueError("A becsült és valós értékek listáinak azonos hosszúnak kell lenniük.")
+        print("A becsült és valós értékek listáinak azonos hosszúnak kell lenniük.")
+        return -1
 
     absolute_percentage_errors = []
     for prediction, actual in zip(becslesek, teszt_adatok):

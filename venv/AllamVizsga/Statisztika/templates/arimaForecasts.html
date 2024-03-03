@@ -62,7 +62,7 @@
                             {% endfor %}
                                 <tr>
                                     <td colspan="2">
-                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMADiagram }}">
+                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.diagram }}">
                                             <img src="data:image/png;base64,{{ megye.ARIMA.diagram }}">
                                         </a>
                                     </td>                                    
@@ -81,7 +81,6 @@
                         <th>R^2</th>
                         <th>MSE</th>
                         <th>RRMSE</th>
-                        <th>RRMSE</th>
                         <th>MAPE</th>
                     </tr>
                 </thead>
@@ -93,7 +92,7 @@
                         <td>{{ megye.ARIMA.r_squared }}</td>
                         <td>{{ megye.ARIMA.mse|floatformat:2 }} %</td>
                         <td>{{ megye.ARIMA.rrmse|floatformat:2 }} %</td>
-                        <td>{{ megye.ARIMA.mape floatformat:2 }} %</td>
+                        <td>{{ megye.ARIMA.mape|floatformat:2 }} %</td>
                     </tr>
                     {% endfor %}
                 </tbody>

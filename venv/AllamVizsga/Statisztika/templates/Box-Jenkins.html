@@ -169,8 +169,18 @@
             </div>
 
             <hr>
-            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs (ACF) és parciális autokorrelációs (PACF) függvény teszt</h1> <hr>
              <br>
+             <h1 class="subtitle has-text-centered has-text-light">Eloszlás diagramok</h1> <hr>
+             <div class="kepek">
+                {% for megye in statisztikak %}
+                    <div id="acfpacf" class="has-text-centered">
+                        <a target="_blank" href="data:image/png;base64,{{ megye.distributionPlot }}">
+                            <img src="data:image/png;base64,{{ megye.distributionPlot }}" alt="eloszlás diagram class="kep">
+                        </a>
+                    </div>
+                {% endfor %}
+            </div><br>
+            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs diagramok</h1> <hr>
              <div class="kepek">
                 {% for megye in statisztikak %}
                     <div id="acfpacf" class="has-text-centered">
@@ -179,7 +189,7 @@
                         </a>
                     </div>
                 {% endfor %}
-            </div>
+            </div><br>
             <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs diagramok</h1> <hr>
             <div class="kepek">
                 {% for megye in statisztikak %}
@@ -230,6 +240,9 @@
                     <input type="radio" name="{{ megye.idosor_nev }}_tipus" id="{{ megye.idosor_nev }}_arima" value="arima">
                 </div>
                 </div>
+                <label for="{{ stat.idosor_nev }}_n_pred">Kért előrejelzések száma a tesztadatokon túl</label>
+                <input class="input" type="number" value="0" min="0" max="12" name="{{ stat.idosor_nev }}_n_pred" id="{{ stat.idosor_nev }}_n_pred">
+
                 <br><br>
         {% endfor %}
             <p>Az előrejelzés az összes beolvasott tesztadat érték száma szerint történik.</p>                
