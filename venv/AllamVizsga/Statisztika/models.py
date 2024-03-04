@@ -31,6 +31,7 @@ class Stat :
         self.adf = {}; self.kpss = {}
         self.teszt_idoszakok = []
         self.Kolmogorov_Smirnov = {'statisztika': 0, 'p_value': 0}
+        self.log_Kolmogorov_Smirnov = {'statisztika': 0, 'p_value': 0}
 
 
     def calculateStatistics(self):
@@ -47,6 +48,10 @@ class Stat :
         ks_statistic, p_value = kstest(self.adatok, 'norm')
         self.Kolmogorov_Smirnov['statisztika'] = ks_statistic
         self.Kolmogorov_Smirnov['p_value'] = p_value
+
+        ks_statistic, p_value = kstest(np.log(self.adatok), 'norm')
+        self.log_Kolmogorov_Smirnov['statisztika'] = ks_statistic
+        self.log_Kolmogorov_Smirnov['p_value'] = p_value
 
   
     def setTesztAdatok(self, teszt_adatok: list):
@@ -201,6 +206,10 @@ class Stat :
         #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
         test_data = self.adatok[-n_steps:]  + self.teszt_adatok
         learning_data = self.adatok[:-n_steps]
+
+        if(scaler == "log"):
+            learning_data = np.log(learning_data)
+            test_data = np.log(test_data)
 
         self.X_train, self.y_train = split_sequence(learning_data, n_steps)
         self.X_test, self.y_test = split_sequence(test_data, n_steps) 
@@ -449,6 +458,11 @@ class Vanilla_LSTM:
      
         else:
             self.predictions = self.model.predict(self.x_test, verbose=self.verbose)
+            
+            if self.scalerStr == "log":
+                print("\n Logaritmizélés miatt visza expbe \n")
+                self.predictions = np.exp(self.predictions)
+
             self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
     
     
@@ -483,12 +497,19 @@ class Vanilla_LSTM:
         
         for i in range(self.n_pred):
             forecast, forecastNormalized = self.predictSingle(input) 
+
+            if self.scalerStr == "log":
+                print(f"\n Logaritmizélés miatt visza expbe {forecast} ==> {np.exp(forecast)}\n")
+               # forecast = np.exp(forecast)
+
             future_forecasts.append(forecast) 
 
             print(f"{i+1}. : {input} ---> {forecast}")
             x_axis.append(f"{i+1}. jóslat")
             # egyel arréb toljuk az input elmeit, az utolsó a legutóbbi előrejelzett érték lesz
             input = [Slide(input[0], forecastNormalized)]
+
+     
 
         print(f"future forecast: x={x_axis}, \n y={future_forecasts}")
         return future_forecasts, x_axis

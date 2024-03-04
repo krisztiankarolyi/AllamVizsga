@@ -87,10 +87,11 @@
                     </span></span></label></i></label>
 
                     <select class="input" id="{{ stat.idosor_nev }}_scaler" name="{{ stat.idosor_nev }}_scaler">
-                        <option  value="standard">Standard</option>
+                        <option value="standard">Standard</option>
                         <option value="minmax">Min-Max</option>
                         <option value="robust">Robosztus</option>
-                        <option selected value="">Nincs</option>
+                        <option value="">Nincs</option>
+                        <option selected value="log">Logaritmizálás</option>
                     </select>
 
                     <label for="{{ stat.idosor_nev }}_actFunction">Aktivációs függvény: <i class="info">ℹ️ <span class="tooltip">

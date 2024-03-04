@@ -148,8 +148,8 @@
                             <th>Statisztika</th>
                             <th>p-érték</th>
                             <th>Kritikus Érték (5%)</th>
-                            <th>Statisztika</th>
-                            <th>p-érték</th>
+                            <th colspan="2">Statisztika</th>
+                            <th colspan="2">p-érték</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -166,7 +166,9 @@
                             <td>{{ idosor.kpss.critical_values.5 }}</td>
 
                             <td>{{ idosor.Kolmogorov_Smirnov.statisztika | floatformat:2 }} </td>
+                            <td>LN: {{ idosor.log_Kolmogorov_Smirnov.statisztika | floatformat:2 }} </td>
                             <td>{{ idosor.Kolmogorov_Smirnov.p_value | floatformat:2 }}</td>
+                            <td>LN: {{ idosor.log_Kolmogorov_Smirnov.p_value | floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
