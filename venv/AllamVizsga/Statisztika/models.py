@@ -17,6 +17,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
 from keras.models import Sequential
+from scipy.stats import kstest
 import pandas as pd
 from keras.layers import LSTM, Dense
 
@@ -29,6 +30,7 @@ class Stat :
         print("idoszakok", self.idoszakok)
         self.adf = {}; self.kpss = {}
         self.teszt_idoszakok = []
+        self.Kolmogorov_Smirnov = {'statisztika': 0, 'p_value': 0}
 
 
     def calculateStatistics(self):
@@ -41,6 +43,11 @@ class Stat :
         self.minDatum = self.idoszakok[list.index(self.adatok, self.min)]
         self.maxDatum = self.idoszakok[list.index(self.adatok, self.max)]
         self.Stationarity()
+
+        ks_statistic, p_value = kstest(self.adatok, 'norm')
+        self.Kolmogorov_Smirnov['statisztika'] = ks_statistic
+        self.Kolmogorov_Smirnov['p_value'] = p_value
+
   
     def setTesztAdatok(self, teszt_adatok: list):
         self.teszt_adatok = teszt_adatok
@@ -102,9 +109,11 @@ class Stat :
 
         return encoded_image
 
-    def predictARIMA(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10):
+    def predictARIMA(self, p:int = 1, d: int = 0, q: int = 0, n_pred:int = 6):
         t = len(self.teszt_adatok)
-        self.ARIMA = ARIMA(p, d, q, t, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok )
+        self.ARIMA = ARIMA(p, d, q, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok, n_pred = n_pred )
+        self.ARIMA.fit(self.adatok)
+        self.ARIMA.predict(self.teszt_adatok, self.adatok)
         return self.ARIMA
         
     def plot_acf_and_pacf(self):
@@ -253,8 +262,7 @@ def split_sequence(sequence, n_steps):
         return np.array(X), np.array(y)
 
 class ARIMA:
-    def __init__(self, p:int = 1, d: int = 0, q: int = 0, t:int = 10, adatok = [], teszt_adatok = [], idoszakok = [], teszt_idoszakok = []):
-
+    def __init__(self, p:int = 1, d: int = 0, q: int = 0, adatok = [], teszt_adatok = [], idoszakok = [], teszt_idoszakok = [], n_pred: int = 6):
         self.p = int(p)
         self.q = int(q)
         self.d = int(d)
@@ -265,16 +273,26 @@ class ARIMA:
         self.r_squared = 0
         self.diagram = None
         self.modelName = ""
+        self.n = n_pred
+        self.teszt_idoszakok = teszt_idoszakok
 
         if adatok is not None and teszt_adatok is not None and idoszakok is not None and teszt_idoszakok is not None:
-            if len(adatok) == len(idoszakok) and len(teszt_adatok) == len(teszt_idoszakok):
-                self.t = len(teszt_adatok)
-                # ARIMA modell illesztése
-                self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q))
-                self.model_fit = self.model.fit()
-                self.aic = self.model_fit.aic
 
-                # Jövőbeli értékek előrejelzése
+            if len(adatok) == len(idoszakok) and len(teszt_adatok) == len(teszt_idoszakok):
+                self.t = len(teszt_adatok)   
+            else:
+                print(f"Az adatstruktúrák hossza nem egyezik meg: \n teszt_adatok: {len(teszt_adatok)}, teszt időszakok: {len(teszt_idoszakok)} \n adatok: {len(adatok)}, idoszakok: {len(idoszakok)} ")
+        else:
+            print("Nem megfelelő adatstruktúra megadva.")
+
+    def fit(self, adatok):
+        # ARIMA modell illesztése
+        self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q))
+        self.model_fit = self.model.fit()
+        self.aic = self.model_fit.aic
+    
+    def predict(self, teszt_adatok, adatok):
+          # Teszhalmazbeli értékek előrejelzése
                 history = [x for x in adatok]
                 predictions = list()
             
@@ -297,10 +315,13 @@ class ARIMA:
                 self.rrmse = RRMSE(teszt_adatok, self.becslesek)
                 self.mape = MAPE(teszt_adatok, self.becslesek)
                 self.r_squared = r2_score(teszt_adatok, self.becslesek)
-            else:
-                print(f"Az adatstruktúrák hossza nem egyezik meg: \n teszt_adatok: {len(teszt_adatok)}, teszt időszakok: {len(teszt_idoszakok)} \n adatok: {len(adatok)}, idoszakok: {len(idoszakok)} ")
-        else:
-            print("Nem megfelelő adatstruktúra megadva.")
+    
+    def forecastExtra(self):
+        self.future_predictions = self.model_fit.forecast(steps=self.n)   
+
+        for i in range(len(self.future_predictions)):
+            print(f"{self.future_predictions[i]} hozzáadva a becslésekhez")
+            self.becslesek.append(self.future_predictions[i])
   
 class MLP:
     def __init__(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, 

@@ -225,6 +225,8 @@ def arima(request):
         adatsorok =[] 
 
         for megye in statisztikak:
+            print(request.POST)
+
             p = request.POST[megye.idosor_nev+'_p']
             q = request.POST[megye.idosor_nev+'_q']
             d = request.POST[megye.idosor_nev+'_d']
@@ -233,9 +235,9 @@ def arima(request):
             tipus = request.POST[megye.idosor_nev+'_tipus']
             test_results = ""
             title = ""
-            t = len(beolvasott_teszt_idoszakok)+n_pred
+            t = len(beolvasott_teszt_idoszakok)
             
-            test_results = megye.predictARIMA(p, d, q, t)
+            test_results = megye.predictARIMA(p, d, q, n_pred)
 
             if tipus == "ar":
                 title = f"\n{megye.idosor_nev} AR({p})\n"
@@ -261,14 +263,21 @@ def arima(request):
     
         adatsorok = []
         adatsorNevek = []
+
         for megye in statisztikak:
-            adatsorNevek.append(megye.idosor_nev)
-            adatsorok.append(megye.teszt_adatok)
+            megye.ARIMA.forecastExtra()
 
             adatsorNevek.append(megye.ARIMA.modelName)
             adatsorok.append(megye.ARIMA.becslesek)
 
-        diagaramEgyben = AbrazolEgyben(adatsorok, beolvasott_teszt_idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5, True, 3)
+        # Minden idősorhoz azonos x tengelyt használj
+        idoszakok = beolvasott_teszt_idoszakok
+        for i in range(len(adatsorok[0]) - len(idoszakok)):
+            idoszakok.append(f"{i+1}. megfigyelés")
+
+        print("\n ---- idoszakok", idoszakok, "\n -----")
+
+        diagaramEgyben = AbrazolEgyben(adatsorok, idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True, 3)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
         return render(request, "arimaForecasts.html", {"statisztikak": statisztikak, "diagaramEgyben": diagaramEgyben})
