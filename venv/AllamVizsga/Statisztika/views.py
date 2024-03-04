@@ -190,6 +190,10 @@ def MLPResults(request):
         return HttpResponse("Hiba történt. "+str(e))
     
 def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None, grid=False, num: int = 1): 
+    
+    if( len(idoszakok) > len(adatsorok[0]) ):
+        idoszakok = idoszakok[0:len(adatsorok[0])]
+    
     plt.figure(num = num, figsize=(15, 7))
     for i, megye in enumerate(megnevezesek): 
         plt.plot(idoszakok, adatsorok[i], label=megye)
@@ -265,17 +269,19 @@ def arima(request):
         adatsorNevek = []
 
         for megye in statisztikak:
-            megye.ARIMA.forecastExtra()
-
             adatsorNevek.append(megye.ARIMA.modelName)
-            adatsorok.append(megye.ARIMA.becslesek)
+            becslesek = megye.ARIMA.becslesek
+
+            preds = megye.ARIMA.forecastExtra()
+            for i in preds:
+                becslesek.append(i)
+
+            adatsorok.append(becslesek)
 
         # Minden idősorhoz azonos x tengelyt használj
         idoszakok = beolvasott_teszt_idoszakok
         for i in range(len(adatsorok[0]) - len(idoszakok)):
-            idoszakok.append(f"{i+1}. megfigyelés")
-
-        print("\n ---- idoszakok", idoszakok, "\n -----")
+            idoszakok.append(f"{i+1}. jóslat")
 
         diagaramEgyben = AbrazolEgyben(adatsorok, idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True, 3)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')

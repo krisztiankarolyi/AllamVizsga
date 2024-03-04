@@ -317,11 +317,11 @@ class ARIMA:
                 self.r_squared = r2_score(teszt_adatok, self.becslesek)
     
     def forecastExtra(self):
-        self.future_predictions = self.model_fit.forecast(steps=self.n)   
-
-        for i in range(len(self.future_predictions)):
-            print(f"{self.future_predictions[i]} hozzáadva a becslésekhez")
-            self.becslesek.append(self.future_predictions[i])
+        future_predictions = self.model_fit.forecast(steps=self.n)   
+        for i in range(len(future_predictions)):
+            print(f"{future_predictions[i]} hozzáadva a becslésekhez")
+        
+        return future_predictions
   
 class MLP:
     def __init__(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, 
