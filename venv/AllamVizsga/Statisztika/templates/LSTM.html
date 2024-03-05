@@ -77,7 +77,6 @@
                     <label for="{{ stat.namidosor_neve }}_epochs">Epoch-ok száma : <span class="info"> ℹ️ 
                         <span class="tooltip"> info here </span></span></label>
                     <input class="input" type="number" value="200" min="1" max = 1000 required name="{{ stat.idosor_nev }}_epochs" id="{{ stat.idosor_nev }}_epochs">
-                
                     
                     <label for="{{ stat.idosor_nev }}_scaler">Normalizálás: 
                         <i class="info">ℹ️  <span class="tooltip"><p>Az adatok normalizálása segít a modellnek könynebben felismerni a mintázatokat. </p><br>
@@ -90,7 +89,7 @@
                         <option value="standard">Standard</option>
                         <option value="minmax">Min-Max</option>
                         <option value="robust">Robosztus</option>
-                        <option value="">Nincs</option>
+                        <option value="None">Nincs</option>
                         <option selected value="log">Logaritmizálás</option>
                     </select>
 

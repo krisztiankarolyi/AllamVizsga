@@ -111,42 +111,48 @@ def LSTM(request):
 
 
 def LSTMResults(request):
-    scaler = ""
-    solver = "adam"
-    activation = "relu"
-    mode = "vanilla"
-    epochs = 200
-    n_steps = 3
-    units = 50
+    try:
+        scaler = "None"
+        solver = "adam"
+        activation = "relu"
+        mode = "vanilla"
+        epochs = 200
+        n_steps = 3
+        units = 50
 
-    for megye in statisztikak:           
-        scaler =  request.POST[megye.idosor_nev+'_scaler']
-        activation = request.POST[megye.idosor_nev+'_actFunction']
-        epochs = int(request.POST[megye.idosor_nev+'_epochs'])
-        solver = request.POST[megye.idosor_nev+"_solver"]
-        n_steps = int(request.POST[megye.idosor_nev+"_n_steps"])
-        n_pred =  int(request.POST[megye.idosor_nev+"_n_pred"])
-        megye.predict_with_lstm(n_steps = n_steps, solver=solver, activation = activation,
-            scaler = scaler, units=units,  mode = mode, epochs = epochs, n_pred =n_pred )
-        diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5,  num=5)
-        diagram = base64.b64encode(diagram.read()).decode('utf-8')
-        megye.lstm.diagram = diagram
+        for megye in statisztikak:      
+            scaler =  request.POST[megye.idosor_nev+'_scaler']
+            activation = request.POST[megye.idosor_nev+'_actFunction']
+            epochs = int(request.POST[megye.idosor_nev+'_epochs'])
+            solver = request.POST[megye.idosor_nev+"_solver"]
+            n_steps = int(request.POST[megye.idosor_nev+"_n_steps"])
+            n_pred =  int(request.POST[megye.idosor_nev+"_n_pred"])
+            megye.predict_with_lstm(n_steps = n_steps, solver=solver, activation = activation, scaler = scaler, units=units,  mode = mode, epochs = epochs, n_pred =n_pred )
+            diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5,  num=5)
+            diagram = base64.b64encode(diagram.read()).decode('utf-8')
+            megye.lstm.diagram = diagram
 
-    adatsorNevek = []
-    adatsorok = []
-    for megye in statisztikak:
-       # adatsorNevek.append(megye.idosor_nev)
-       # adatsorok.append(megye.teszt_adatok)
-        
-        adatsorNevek.append(megye.idosor_nev+" LSTM")
-        adatsorok.append(megye.lstm.predictions + megye.lstm.futureforecasts_y)
+        adatsorNevek = []
+        adatsorok = []
+        for megye in statisztikak:
+        # adatsorNevek.append(megye.idosor_nev)
+        # adatsorok.append(megye.teszt_adatok)
+            
+            adatsorNevek.append(megye.idosor_nev+" LSTM")
+            adatsorok.append(megye.lstm.predictions)
 
-    x_axis = beolvasott_teszt_idoszakok + statisztikak[0].lstm.futureforecasts_x    
+        x_axis = beolvasott_teszt_idoszakok
 
-    diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True)
-    diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
+        diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True)
+        diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
-    return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
+        return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
+    
+    except Exception as e:
+        print(traceback.format_exc())
+        return HttpResponse("Hiba történt. "+str(e))
+    
+
 
 def MLPResults(request):
     try:
