@@ -379,6 +379,9 @@ class MLP:
 
         print(f"future firecast: x={x_axis}, \n y={future_forecasts}")
         return future_forecasts, x_axis
+    
+    def updateInput(self, input, lastValue):
+        pass
           
 class Vanilla_LSTM:
     def __init__(self, learning_data, test_data, units:int = 50, activation: str = "relu", 
@@ -410,6 +413,7 @@ class Vanilla_LSTM:
         self.trainModel()
         self.predict()      
         self.envaluate()
+   
     
     def createMLsets(self):
         self.x_train, self.y_train = split_sequence(self.learning_data, self.n_steps)
@@ -450,7 +454,6 @@ class Vanilla_LSTM:
                 self.y_train_Normalized = np.log(self.y_train).reshape(-1, 1)
                 self.y_test_Normalized = np.log(self.y_test).reshape(-1, 1)
 
-        print(f"\n normalizált tanítóadatok: {self.x_train_Normalized}")
             
     def trainModel(self): 
         if self.scaler is not None or self.scalerStr == "log":
@@ -471,16 +474,46 @@ class Vanilla_LSTM:
                 self.predictions_Normalized = self.predictions
 
                 if self.scalerStr == "log":
-                    print(f"reverting logarithmed predictions: \n {self.predictions}")
                     self.predictions = np.exp(self.predictions)
-                    print(f"\n to \n {self.predictions}")
-
                 else:
                   self.predictions = self.scaler.inverse_transform(self.predictions)
         else:
             self.predictions = self.model.predict(self.x_test, verbose=self.verbose)
             
         self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
+
+    def forecast_future(self):
+        input = []
+        forecasts = []
+
+        if self.scaler is not None or self.scalerStr == "log":
+            input = self.x_test_Normalized[-1].reshape(1, self.n_steps, self.n_features)
+        else:
+            input = self.x_test[-1].reshape(1, self.n_steps, self.n_features)
+
+        print(f"prediction starts with {input} \n ")
+
+        input = np.concatenate([input[:, 1:, :]])
+
+        for i in range(self.n_pred):
+                forecast =  self.model.predict(input, verbose = self.verbose)[0]
+                print(f"{input} ==>  {forecast}")
+                forecasts.append(forecast)
+                #input frissitese az elorejelzett ertekkel
+                input = np.concatenate([input[:, 1:, :], forecast.reshape(1, 1, -1)], axis=1)
+
+        if(self.normalizeOutputs):
+            if self.scaler is not None:
+                forecasts = np.array(forecasts).reshape(-1, 1)
+                forecasts = self.scaler.inverse_transform(forecasts)
+
+            elif self.scalerStr =="log":
+                forecasts = np.exp(forecasts)
+
+        forecasts = [item for sublist in forecasts for item in sublist]
+
+        print("\n \t\t\t DONE \n", forecasts)
+        return forecasts
 
 
     def envaluate(self):

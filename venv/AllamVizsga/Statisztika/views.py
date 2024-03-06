@@ -137,16 +137,21 @@ def LSTMResults(request):
             megye.lstm.diagram = diagram
 
         adatsorNevek = []
+        x_axis = beolvasott_teszt_idoszakok
         adatsorok = []
         for megye in statisztikak:
         # adatsorNevek.append(megye.idosor_nev)
         # adatsorok.append(megye.teszt_adatok)
-            
             adatsorNevek.append(megye.idosor_nev+" LSTM")
-            adatsorok.append(megye.lstm.predictions)
+            plusz_elorejelzesek = megye.lstm.forecast_future()
 
-        x_axis = beolvasott_teszt_idoszakok
+            y = megye.lstm.predictions
+            for i in range(len(plusz_elorejelzesek)):
+                y.append(plusz_elorejelzesek[i])
+                x_axis.append(f"{i+1}. elorejelzes")
+            adatsorok.append(y)
 
+                       
         diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
@@ -200,31 +205,35 @@ def MLPResults(request):
         return HttpResponse("Hiba történt. "+str(e))
     
 def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat="", y_min=None, y_max=None, y_step=None, grid=False, num: int = 1): 
-    
-    if( len(idoszakok) > len(adatsorok[0]) ):
-        idoszakok = idoszakok[0:len(adatsorok[0])]
-    
-    plt.figure(num = num, figsize=(15, 7))
-    for i, megye in enumerate(megnevezesek): 
-        plt.plot(idoszakok, adatsorok[i], label=megye)
-    plt.ylabel(yFelirat)
-    plt.title(f"{Cim} {idoszakok[0]} - {idoszakok[-1]} között")
-    plt.grid(grid)
-    plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
+    try:
+        if( len(idoszakok) > len(adatsorok[0]) ):
+            idoszakok = idoszakok[0:len(adatsorok[0])]
+        
+        plt.figure(num = num, figsize=(15, 7))
+        for i, megye in enumerate(megnevezesek): 
+            plt.plot(idoszakok, adatsorok[i], label=megye)
+        plt.ylabel(yFelirat)
+        plt.title(f"{Cim} {idoszakok[0]} - {idoszakok[-1]} között")
+        plt.grid(grid)
+        plt.xticks(idoszakok[::suruseg], rotation=45, ha="right", fontsize=8)
 
 
-    if all((y_min, y_max, y_step)):
-        plt.yticks(np.arange(y_min, y_max, y_step))
+        if all((y_min, y_max, y_step)):
+            plt.yticks(np.arange(y_min, y_max, y_step))
+        
+        plt.legend()
+        
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)  
+        plt.close()
+        return buffer
     
-    plt.legend()
-    
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format="png")
-    buffer.seek(0)  
-    plt.close()
-    return buffer
+    except:
+        print(traceback.format_exc())
+        return redirect('home')
 
-
+        
 def createStatObjects(megyek, adatok, idoPontok):
     eredmenyek = []
     for i in range(len(megyek)):
