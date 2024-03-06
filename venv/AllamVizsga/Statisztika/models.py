@@ -193,14 +193,14 @@ class Stat :
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
                            units: int = 64, n_steps: int = 1, input_dim = 100, loss="mse", n_features = 1, 
-                           epochs: int = 200, verbose: int = 0, n_pred:int = 6):
+                           epochs: int = 200, verbose: int = 0, n_pred:int = 6, normOut: bool = False):
 
         #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
         test_data = self.adatok[-n_steps:]  + self.teszt_adatok
         learning_data = self.adatok[:-n_steps]
 
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
-        n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev)
+        n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
     
     def get_month_number(self, month):
         months = {
@@ -382,7 +382,7 @@ class MLP:
           
 class Vanilla_LSTM:
     def __init__(self, learning_data, test_data, units:int = 50, activation: str = "relu", 
-                  solver: str = "adam", scaler: str = "None", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0, n_pred:int = 6, name: str="default"):
+                  solver: str = "adam", scaler: str = "None", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0, n_pred:int = 6, name: str="default", normOut: bool = False):
         
         self.diagram = None
         self.epochs = epochs
@@ -406,7 +406,7 @@ class Vanilla_LSTM:
         
         print(f"\n ------------------creating {self.name}'s LSTM model and forecasts------------------/n")
         self.createMLsets()
-        self.normalization(self.scalerStr)
+        self.normalization(self.scalerStr, normOut)
         self.trainModel()
         self.predict()      
         self.envaluate()
@@ -417,8 +417,9 @@ class Vanilla_LSTM:
         # reshape from [samples, timesteps] into [samples, timesteps, features] for LSTM 
         self.x_train = self.x_train.reshape((self.x_train.shape[0], self.x_train.shape[1], self.n_features)); self.x_test =  self.x_test.reshape((self.x_test.shape[0], self.x_test.shape[1], self.n_features))    
 
-    def normalization(self, scaler):
+    def normalization(self, scaler, normalizeOutputs=False):
         self.scaler = None
+        self.normalizeOutputs = normalizeOutputs
 
         if(scaler == "minmax"):
            self.scaler = MinMaxScaler()
@@ -436,17 +437,27 @@ class Vanilla_LSTM:
             self.x_train_Normalized = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
             self.x_test_Normalized = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
 
+            if normalizeOutputs:
+                self.y_train_Normalized = self.scaler.fit_transform(self.y_train.reshape(-1, 1))
+                self.y_test_Normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
+
         if scaler == "log":
             print("A tanító- és tesztadatok logaritmizálással normalizálva lettek")
             self.x_train_Normalized = np.log(self.x_train, out=np.zeros_like(self.x_train), where=(self.x_train != 0))
             self.x_test_Normalized = np.log(self.x_test, out=np.zeros_like(self.x_test), where=(self.x_test != 0))
+            
+            if normalizeOutputs:
+                self.y_train_Normalized = np.log(self.y_train).reshape(-1, 1)
+                self.y_test_Normalized = np.log(self.y_test).reshape(-1, 1)
 
-        
-        print(f"\n normalizált tanítóadatok:")
+        print(f"\n normalizált tanítóadatok: {self.x_train_Normalized}")
             
     def trainModel(self): 
         if self.scaler is not None or self.scalerStr == "log":
-            self.model.fit(self.x_train_Normalized, self.y_train, epochs=self.epochs, verbose=self.verbose)
+            if self.normalizeOutputs:
+                self.model.fit(self.x_train_Normalized, self.y_train_Normalized, epochs=self.epochs, verbose=self.verbose)
+            else:
+                self.model.fit(self.x_train_Normalized, self.y_train, epochs=self.epochs, verbose=self.verbose)
         else:
             self.model.fit(self.x_train, self.y_train, epochs = self.epochs, verbose = self.verbose)
  
@@ -454,10 +465,21 @@ class Vanilla_LSTM:
          # előrejelzés a tesztadatokra
         if self.scaler is not None or self.scalerStr == "log":
             self.predictions = self.model.predict(self.x_test_Normalized, verbose=self.verbose)
-            #self.predictions = self.scaler.inverse_transform(self.predictions)
+
+            #ha az outputok is normalizálva lettek, visszaállítás eredeti formára
+            if self.normalizeOutputs:
+                self.predictions_Normalized = self.predictions
+
+                if self.scalerStr == "log":
+                    print(f"reverting logarithmed predictions: \n {self.predictions}")
+                    self.predictions = np.exp(self.predictions)
+                    print(f"\n to \n {self.predictions}")
+
+                else:
+                  self.predictions = self.scaler.inverse_transform(self.predictions)
         else:
             self.predictions = self.model.predict(self.x_test, verbose=self.verbose)
-
+            
         self.predictions = [round(item, 2) for sublist in self.predictions for item in sublist]
 
 
@@ -471,9 +493,14 @@ class Vanilla_LSTM:
         res = "<h1>training set: x == > y</h1>"
 
         if self.scaler is not None or self.scalerStr == "log":
-            for i in range(len(self.x_train)) :
-                res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train[i]} ) <br>"
-                res += f"___ {self.x_train[i]} ==> {self.y_train[i]}  <br><br>"
+            if self.normalizeOutputs:
+                for i in range(len(self.x_train)) :
+                    res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train_Normalized[i]} ) <br>"
+                    res += f"____ {self.x_train[i]} ==> {self.y_train[i]}  <br><br>"
+            else:
+                for i in range(len(self.x_train)) :
+                    res += f"{i+1}.: {self.x_train_Normalized[i]} ==> {self.y_train[i]} ) <br>"
+                    res += f"___ {self.x_train[i]} ==> {self.y_train[i]}  <br><br>"
         else:
             for i in range(len(self.x_train)) :
                 res += f"{i+1}.: {self.x_train[i]} ==> {self.y_train[i]} <br><br>"
@@ -484,10 +511,19 @@ class Vanilla_LSTM:
         res = f"<h1> prediction set: x (input) == > y </h1> <br>"
 
         if self.scaler is not None or self.scalerStr == "log":
-            for i in range(len(self.x_test_Normalized)) :
-                joslat = np.round(float(self.predictions[i]), 2)
-                res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test[i]} <br>"
-                res += f"___ {self.x_test[i]} ==> {self.y_test[i]}, joslat: {joslat} <br><br>"
+            if self.normalizeOutputs:         
+                for i in range(len(self.x_test_Normalized)) :
+                    joslatNormalizalt = np.round(float(self.predictions_Normalized[i]), 2)
+                    joslat = np.round(float(self.predictions[i]), 2)
+
+                    res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test_Normalized[i]}, joslat: {joslatNormalizalt} <br>"
+                    res += f"___ {self.x_test[i]} ==> {self.y_test[i]}, joslat: {joslat} <br><br>"
+            else:
+                for i in range(len(self.x_test_Normalized)) :
+                    joslat = np.round(float(self.predictions[i]), 2)
+                    res += f"{i+1}.: {self.x_test_Normalized[i]} ==> {self.y_test[i]} <br>"
+                    res += f"___ {self.x_test[i]} ==> {self.y_test[i]}, joslat: {joslat} <br><br>"
+
         else:
             for i in range(len(self.x_test)) :
                 joslat = np.round(self.predictions[i], 2)

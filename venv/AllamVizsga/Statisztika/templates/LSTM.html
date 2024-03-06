@@ -69,6 +69,7 @@
                 {% csrf_token %}
                 {% for stat in statisztikak %} 
                 <br> <br>
+
                     <h3 class="has-text-centered subtitle has-text-light">{{ stat.idosor_nev }}</h3> 
                     <label for="{{ stat.namidosor_neve }}_units">Csomópontok száma : <span class="info"> ℹ️ 
                         <span class="tooltip"> info here </span></span></label>
@@ -83,7 +84,11 @@
                             <p>A standardizáció képlete: \( Z = \frac{X - \mu}{\sigma} \)</p><br>
                             <p>A Min-Max skálázás képlete: \(X_{\text{norm}} = \frac{X - X_{\text{min}}}{X_{\text{max}} - X_{\text{min}}}\)</p> <br>
                             <p>A Robust skálázás képlete: \(X_{\text{robust}} = \frac{X - Q_1(X)}{Q_3(X) - Q_1(X)}\)</p>
-                    </span></span></label></i></label>
+                    </span></span></label></i>
+                    
+                   <label for="{{ stat.idosor_nev }}_normOut"> elvárt kimenetek normalizálása  <input type="checkbox" checked name="{{ stat.idosor_nev }}_normOut"> </label>
+
+                    </label>
 
                     <select class="input" id="{{ stat.idosor_nev }}_scaler" name="{{ stat.idosor_nev }}_scaler">
                         <option value="standard">Standard</option>
