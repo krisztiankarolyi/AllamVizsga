@@ -299,9 +299,12 @@ class ARIMA:
                     predictions.append(yhat)
                     obs = teszt_adatok[t]
                     history.append(obs)
-                  #  print('predicted=%f, expected=%f' % (yhat, obs))
+                    self.aic = model_fit.aic
+                    
+                  # print('predicted=%f, expected=%f' % (yhat, obs))
                 
                 self.becslesek = predictions
+
                 self.becsleseksZipped  = zip(predictions, teszt_adatok)
 
                 # Egyéb értékek kiszámolása
