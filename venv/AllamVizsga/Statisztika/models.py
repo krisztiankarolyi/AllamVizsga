@@ -128,21 +128,28 @@ class Stat :
 
     def distributionPlot(self):
         # Eredeti értékek hisztogramja
-        plt.subplot(2, 1, 1)
-        plt.hist(self.adatok, bins=30, color='skyblue', edgecolor='black')
+        n, bins, _ = plt.hist(self.adatok, bins=30, color='white', edgecolor='black', density=True, stacked=True)
         plt.xlabel('Értékek')
         plt.ylabel('Gyakoriság')
         plt.title(f"{self.idosor_nev} Hisztogram")
 
-        # Logaritmizált értékek hisztogramja
-        plt.subplot(2, 1, 2)
-        log_adatok = np.log(self.adatok)  # Logaritmizálás
-        plt.hist(log_adatok, bins=30, color='skyblue', edgecolor='black')
-        plt.xlabel('Logaritmizált értékek')
-        plt.ylabel('Gyakoriság')
-        plt.title(f"{self.idosor_nev} Logaritmizált Hisztogram")
 
-        plt.tight_layout()  # Automatikus elrendezés
+        mean_val = np.mean(self.adatok)
+        std_dev = np.std(self.adatok)
+        xmin, xmax = plt.xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = ((1 / (np.sqrt(2 * np.pi) * std_dev)) *
+                np.exp(-0.5 * ((x - mean_val) / std_dev)**2))
+
+        # Normális Gauss-görbe
+        p = p * np.sum(n) * np.diff(bins)[0]
+        plt.plot(x, p, 'r--', label='Normál eloszlás')
+
+        # Tényleges gyakoriságok zöld vonallal
+        plt.plot(bins[:-1], n, color='blue', marker='o', linestyle='-', linewidth=2, markersize=6, label='Tényleges Gyakoriság')
+
+        plt.legend()
+        plt.tight_layout()
 
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
@@ -150,6 +157,8 @@ class Stat :
         plt.close()
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         return encoded_image
+
+
         
     def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3, n_pred=6):
         if not self.teszt_adatok:
@@ -286,38 +295,35 @@ class ARIMA:
         self.aic = self.model_fit.aic
     
     def predict(self, teszt_adatok, adatok):
-          # Teszhalmazbeli értékek előrejelzése
-                history = [x for x in adatok]
-                predictions = list()
-            
-                # walk-forward validation
-                for t in range(len(teszt_adatok)):
-                    model = sm.tsa.ARIMA(history, order=(self.p, self.d, self.q))
-                    model_fit = model.fit()
-                    output = model_fit.forecast()
-                    yhat = output[0]
-                    predictions.append(yhat)
-                    obs = teszt_adatok[t]
-                    history.append(obs)
-                    self.aic = model_fit.aic
-                    
-                  # print('predicted=%f, expected=%f' % (yhat, obs))
-                
-                self.becslesek = predictions
+        # Teszhalmazbeli értékek előrejelzése előrelépő validációval --> 
+        # először a tanítóadatokra illeszkedik, majd egyenként jósolja a teszthalmaz értékeit, a jóslattal bővíti a saját tanítóhalmazát, amire újra fog illeszkedni minden lépésben.
+    
+        history = [x for x in adatok]
+        predictions = list()
+        # walk-forward validation = előrelépő validáció
+        for t in range(len(teszt_adatok)):
+            model = sm.tsa.ARIMA(history, order=(self.p, self.d, self.q))
+            model_fit = model.fit()
+            output = model_fit.forecast()
+            predictions.append(output[0])
+            obs = teszt_adatok[t]
+            history.append(obs)
 
-                self.becsleseksZipped  = zip(predictions, teszt_adatok)
+            #self.Finalaic = model_fit.aic
+            # print('predicted=%f, expected=%f' % (yhat, obs))
+        
+        self.becslesek = predictions
+        self.becsleseksZipped  = zip(predictions, teszt_adatok)
 
-                # Egyéb értékek kiszámolása
-                self.mse = MSE(teszt_adatok, self.becslesek)
-                self.rrmse = RRMSE(teszt_adatok, self.becslesek)
-                self.mape = MAPE(teszt_adatok, self.becslesek)
-                self.r_squared = r2_score(teszt_adatok, self.becslesek)
+        # Egyéb értékek kiszámolása
+        self.mse = MSE(teszt_adatok, self.becslesek)
+        self.rrmse = RRMSE(teszt_adatok, self.becslesek)
+        self.mape = MAPE(teszt_adatok, self.becslesek)
+        self.r_squared = r2_score(teszt_adatok, self.becslesek)
     
     def forecastExtra(self):
+        # egy lépésben előrejelzés --> kevésbé precíz az előrelépő validációval szemben, a tesztadaton túli előrejelzéshez jó
         future_predictions = self.model_fit.forecast(steps=self.n)   
-        for i in range(len(future_predictions)):
-            print(f"{future_predictions[i]} hozzáadva a becslésekhez")
-        
         return future_predictions
   
 class MLP:

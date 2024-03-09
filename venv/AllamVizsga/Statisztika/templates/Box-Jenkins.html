@@ -139,7 +139,6 @@
                             <th rowspan="2"></th>
                             <th colspan="3" class="has-text-centered">ADF teszt</th>
                             <th colspan="3" class="has-text-centered">KPSS teszt</th>
-                            <th colspan="2" class="has-text-centered">Kolmogorov-Smirnov Teszt</th>
                         </tr>
                         <tr style="font-size: 0.9rem;">
                             <th>Statisztika</th>
@@ -148,8 +147,6 @@
                             <th>Statisztika</th>
                             <th>p-érték</th>
                             <th>Kritikus Érték (5%)</th>
-                            <th colspan="2">Statisztika</th>
-                            <th colspan="2">p-érték</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -164,11 +161,6 @@
                             <td>{{ idosor.kpss.kpss_stat }}</td>
                             <td>{{ idosor.kpss.p_value }}</td>
                             <td>{{ idosor.kpss.critical_values.5 }}</td>
-
-                            <td>{{ idosor.Kolmogorov_Smirnov.statisztika | floatformat:2 }} </td>
-                            <td>LN: {{ idosor.log_Kolmogorov_Smirnov.statisztika | floatformat:2 }} </td>
-                            <td>{{ idosor.Kolmogorov_Smirnov.p_value | floatformat:2 }}</td>
-                            <td>LN: {{ idosor.log_Kolmogorov_Smirnov.p_value | floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -188,7 +180,33 @@
                     </div>
                 {% endfor %}
             </div><br>
-            <h1 class="subtitle has-text-centered has-text-light">Autokorrelációs diagramok</h1> <hr>
+            
+            <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%; overflow-x: scroll;">
+            <thead>
+                
+            <tr>
+                <th colspan="3" class="has-text-centered">Kolmogorov-Smirnov Teszt a normális eloszlásra</th>
+            </tr>
+            <tr>
+            <th>Idősor</th>
+            <th >Statisztika</th>
+            <th>p-érték</th>
+            </tr>
+            </thead>
+            
+            <tbody>
+            {% for idosor in statisztikak %}
+            <tr>
+            <td>{{ idosor.idosor_nev }}</td>
+            <td>{{ idosor.Kolmogorov_Smirnov.statisztika | floatformat:2 }} </td>
+            <td>{{ idosor.Kolmogorov_Smirnov.p_value | floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            </table>
+
+
+            <h1 class="subtitle has-text-centered has-text-light">ACF és PACF tesztek</h1> <hr>
              <div class="kepek">
                 {% for idosor in statisztikak %}
                     <div id="acfpacf" class="has-text-centered">
