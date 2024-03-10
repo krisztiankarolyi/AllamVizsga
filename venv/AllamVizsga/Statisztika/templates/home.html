@@ -28,7 +28,7 @@
                 </form>
             </div>
             <hr>
-            <h1 class="title has-text-white has-text-centered">Beolvasott Adatok</h1>
+            <h2 class="subtitle has-text-white has-text-centered">Beolvasott adatok</h2>
             <div class="container has-background-dark has-text-light" style="max-height: 33vh; min-height: 33vh; overflow-y: scroll; min-width: 100%;">
                 <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth has-background-light" style="min-width: 100%;">
                     <thead style="position: sticky; top: 0; z-index: 1;">
@@ -50,11 +50,109 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                
             </div>
-        <br>            
+        <br>       
+        <h2 class="subtitle has-text-white has-text-centered">Adatok közös grafikonon ábrázolva</h2>     
             <div id="diagram" class="has-text-centered">
               <img src="data:image/png;base64,{{ diagram }}" alt="Diagram" style=" height: 30%;">
             </div>
+
+            <h2 class="subtitle has-text-white has-text-centered">Statisztikai mutatók</h2>
+            <hr>
+            <div class="table-container  is-fullwidth">
+                <table class="table is-bordered is-fullwidth" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr>
+                            <th  class="has-background-info has-text-light">mutató/idosor</th>
+                            {% for stat in statisztikak %}
+                                <th  class="has-background-info has-text-light" >{{ stat.idosor_nev }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Átlag</td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.atlag }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td >Szórás</td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.szoras }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>Variancia</td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.variancia }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>Medián</td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.median }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>Minimum</td>
+                            {% for stat in statisztikak %}
+                            <td> 
+                                <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                    <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.min}}%</i>  
+                                    <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.minDatum}}</i>
+                                </div>                    
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>Maximum</td>
+                            {% for stat in statisztikak %}
+                            <td> 
+                                <div style="display: flex; flex-direction: row; align-content: center; align-items: center; justify-content: space-between;">
+                                    <i class="has-text-left" style="display: inline-block; flex: 1;">{{stat.max}}%</i>  
+                                    <i class="has-text-right" style="display: inline-block; flex: 1;">{{stat.maxDatum}}</i>
+                                </div>                    
+                            </td>
+                            {% endfor %}
+                        </tr>
+    
+                        <tr>
+                            <td>
+                                téli átlag
+                            </td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.SeasonsAvg.winter | floatformat:2 }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>
+                                tavaszi átlag
+                            </td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.SeasonsAvg.spring | floatformat:2 }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>
+                                 nyári átlag
+                            </td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.SeasonsAvg.summer | floatformat:2 }}%</td>
+                            {% endfor %}
+                        </tr>
+                        <tr>
+                            <td>
+                                őszi átlag
+                            </td>
+                            {% for stat in statisztikak %}
+                                <td>{{ stat.SeasonsAvg.autumn | floatformat:2 }}%</td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+                <hr>
 
         </div>
     </body>

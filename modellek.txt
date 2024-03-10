@@ -1,0 +1,5 @@
+Hargita:
+lstm 60 unit, ADAM, ReLU, Standard norm, epoch 400, lag = 3
+MSE	RRMSE	MAPE
+1.65 %	3.11 %	2.65 %
+

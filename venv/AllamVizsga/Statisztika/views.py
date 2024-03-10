@@ -53,7 +53,7 @@ def home(request):
         df_teszt = pd.read_excel(teszt_adatok, sheet_name=tesztSheetName)
         global beolvasott_teszt_idoszakok
         beolvasott_teszt_idoszakok = df_teszt[df_teszt.columns[0]].tolist()
-
+        
         df = pd.read_excel(uploaded_file, sheet_name=sheetName)
         fejlec = df.columns.tolist()
         idoPontok = df[fejlec[0]].tolist()
@@ -61,8 +61,6 @@ def home(request):
         for i, col in enumerate(fejlec[1:]):
             adatsorNevek.append(col)
             adatsorok.append(df[col].tolist())
-
-        data_rows = [{'idoPont': ido, 'adatsorok': [adatsor[i] for adatsor in adatsorok]} for i, ido in enumerate(idoPontok)]
         
         diagram = AbrazolEgyben(adatsorok, idoPontok, adatsorNevek, suruseg, "Székelyföld munkanélküliségi rátái", "",  grid=True, y_min=3, y_max=6, num=4)
         diagram = base64.b64encode(diagram.read()).decode('utf-8')
@@ -77,6 +75,11 @@ def home(request):
                     i.setTesztAdatok(teszt_adatok_df[j].tolist()) 
                     i.setTesztIdoszakok(beolvasott_teszt_idoszakok)
 
+        data_rows = [{'idoPont': ido, 'adatsorok': [adatsor[i] for adatsor in adatsorok]} for i, ido in enumerate(idoPontok)]
+        
+        for i in statisztikak:
+            i.calculateStatistics()
+
         return render(request, 'home.html', {'data_rows': data_rows, 'adatsorNevek': adatsorNevek, 'statisztikak': statisztikak, 'diagram': diagram})
     
     except Exception:
@@ -88,7 +91,6 @@ def home(request):
 def BoxJenkins(request):
     global statisztikak
     for megye in statisztikak:
-        megye.calculateStatistics()
         megye.plot_acf_and_pacf()
         
     return render(request, 'Box-Jenkins.html', {'statisztikak': statisztikak})
