@@ -20,6 +20,8 @@ from keras.models import Sequential
 from scipy.stats import kstest
 import pandas as pd
 from keras.layers import LSTM, Dense
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 class Stat :
     def __init__(self, idosor_nev, adatok, idoszakok):
@@ -112,6 +114,8 @@ class Stat :
         self.ARIMA = ARIMA(p, d, q, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok, n_pred = n_pred )
         self.ARIMA.fit(self.adatok)
         self.ARIMA.predict(self.teszt_adatok, self.adatok)
+        self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
+
         return self.ARIMA
         
     def plot_acf_and_pacf(self):
@@ -198,6 +202,7 @@ class Stat :
         self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.errorHistogram = plot_error_analysis(self.teszt_adatok, self.mlp_model.predictions)
 
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
@@ -210,6 +215,7 @@ class Stat :
 
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
+        self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
     
     def get_month_number(self, month):
         months = {
@@ -277,6 +283,8 @@ class ARIMA:
         self.diagram = None
         self.modelName = ""
         self.n = n_pred
+        self.errorMatrix = None
+        self.errorHistogram = None
         self.teszt_idoszakok = teszt_idoszakok
 
         if adatok is not None and teszt_adatok is not None and idoszakok is not None and teszt_idoszakok is not None:
@@ -295,12 +303,8 @@ class ARIMA:
         self.aic = self.model_fit.aic
     
     def predict(self, teszt_adatok, adatok):
-        # Teszhalmazbeli értékek előrejelzése előrelépő validációval --> 
-        # először a tanítóadatokra illeszkedik, majd egyenként jósolja a teszthalmaz értékeit, a jóslattal bővíti a saját tanítóhalmazát, amire újra fog illeszkedni minden lépésben.
-    
         history = [x for x in adatok]
         predictions = list()
-        # walk-forward validation = előrelépő validáció
         for t in range(len(teszt_adatok)):
             model = sm.tsa.ARIMA(history, order=(self.p, self.d, self.q))
             model_fit = model.fit()
@@ -308,9 +312,6 @@ class ARIMA:
             predictions.append(output[0])
             obs = teszt_adatok[t]
             history.append(obs)
-
-            #self.Finalaic = model_fit.aic
-            # print('predicted=%f, expected=%f' % (yhat, obs))
         
         self.becslesek = predictions
         self.becsleseksZipped  = zip(predictions, teszt_adatok)
@@ -320,6 +321,7 @@ class ARIMA:
         self.rrmse = RRMSE(teszt_adatok, self.becslesek)
         self.mape = MAPE(teszt_adatok, self.becslesek)
         self.r_squared = r2_score(teszt_adatok, self.becslesek)
+
     
     def forecastExtra(self):
         # egy lépésben előrejelzés --> kevésbé precíz az előrelépő validációval szemben, a tesztadaton túli előrejelzéshez jó
@@ -389,8 +391,6 @@ class MLP:
         print(f"future firecast: x={x_axis}, \n y={future_forecasts}")
         return future_forecasts, x_axis
     
-    def updateInput(self, input, lastValue):
-        pass
           
 class Vanilla_LSTM:
     def __init__(self, learning_data, test_data, units:int = 50, activation: str = "relu", 
@@ -626,3 +626,33 @@ def MAPE(becslesek, teszt_adatok):
 
     mean_absolute_percentage_error = sum(absolute_percentage_errors) / len(absolute_percentage_errors)
     return mean_absolute_percentage_error
+
+
+def plot_error_analysis(measured, predicted, num_bins=10):
+    # Hibahistogram
+    errors = [measured[i] - predicted[i] for i in range(len(measured))]
+
+    print("\n errors: \n", errors)
+
+    # Minimum és maximum hiba értéke
+    min_error, max_error = min(errors), max(errors)
+
+    # Hiba hisztogram buffer
+    hist_buffer = io.BytesIO()
+
+    # Hisztogram kiszámolása
+    hist_values, bin_edges = np.histogram(errors, bins=np.linspace(min_error, max_error, num_bins + 1))
+
+    # Hisztogram kirajzolása
+    plt.bar(bin_edges[:-1], hist_values, color='skyblue', edgecolor='black', width=bin_edges[1] - bin_edges[0])
+
+    plt.xlabel('Hiba tartomány')
+    plt.ylabel('Előfordulások száma')
+    plt.title('Előrejelzési hibák eloszlása')
+    plt.savefig(hist_buffer, format="png")
+    hist_buffer.seek(0)
+    encoded_hist_image = base64.b64encode(hist_buffer.getvalue()).decode('utf-8')
+    plt.close()
+
+    return encoded_hist_image
+

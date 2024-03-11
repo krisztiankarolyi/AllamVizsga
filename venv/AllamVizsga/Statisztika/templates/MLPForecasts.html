@@ -93,6 +93,13 @@
                                 </a>
                             </td>
                         </tr>
+                        <tr>
+                            <td colspan="2">
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
+                                    <img src="data:image/png;base64,{{ megye.mlp_model.errorHistogram }}">
+                                </a>
+                            </td>                                    
+                        </tr>
                     </tbody>
                 </table>
             {% endfor %}
