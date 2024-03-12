@@ -92,10 +92,17 @@
                                     <td> {{ megye.ARIMA.ljung_box.stat | floatformat:2  }} </td>
                                     <td> {{ megye.ARIMA.ljung_box.p_value | floatformat:2  }} </td>
                                 </tr>
+                                <tr>
+                                    {% if megye.ARIMA.ljung_box.p_value  > 0.05 %}  
+                                    <td colspan="2"> <p style="color: green;"> Nincs autokorreláció a hibaváltozók között </p></td>
+                                    {% else %}
+                                    <td colspan="2"> <p style="color: red;">  Autokorreláció van a hibaváltozók között </p></td>
+                                    {% endif %}
+                                </tr>
                         </tbody>
                     </table>
-                {% endfor %}
-            </div>
+                {% endfor %} 
+            </div>  <br>
         </div>
             <!-- Táblázat az ARIMA mutatókhoz -->
             <table class="table is-bordered" style="width: 100%;">

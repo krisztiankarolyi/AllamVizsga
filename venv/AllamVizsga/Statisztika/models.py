@@ -21,6 +21,7 @@ from scipy.stats import kstest
 import pandas as pd
 from keras.layers import LSTM, Dense
 from sklearn.metrics import confusion_matrix
+from statsmodels.stats.diagnostic import het_white
 import seaborn as sns
 
 class Stat :
@@ -534,6 +535,7 @@ class Vanilla_LSTM:
         self.mse = MSE(self.predictions, self.y_test)
         self.rrmse = RRMSE(self.predictions, self.y_test)
         self.mape = MAPE(self.predictions, self.y_test)
+
    
     def printTraintSet(self):
         res = "<h1>training set: x == > y</h1>"
