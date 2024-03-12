@@ -116,7 +116,7 @@ class Stat :
         self.ARIMA.fit(self.adatok)
         self.ARIMA.predict(self.teszt_adatok, self.adatok)
         self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
-        self.ARIMA.residualsPlot, self.ARIMA.ljung_box = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
+        self.ARIMA.residualsPlot, self.ARIMA.ljung_box, self.ARIMA.white = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
 
         return self.ARIMA
         
@@ -205,7 +205,8 @@ class Stat :
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.errorHistogram = plot_error_analysis(self.teszt_adatok, self.mlp_model.predictions)
-        self.mlp_model.residualsPlot, self.mlp_model.ljung_box = plot_Residuals(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.residualsPlot, self.mlp_model.ljung_box, self.mlp_model.white = plot_Residuals(self.teszt_adatok, self.mlp_model.predictions)
+         
 
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
@@ -219,9 +220,8 @@ class Stat :
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
         self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
-        self.lstm.residualsPlot, self.lstm.ljung_box = plot_Residuals(self.teszt_adatok, self.lstm.predictions)
+        self.lstm.residualsPlot, self.lstm.ljung_box, self.lstm.white = plot_Residuals(self.teszt_adatok, self.lstm.predictions)
 
-    
     def get_month_number(self, month):
         months = {
             'január': 1,
@@ -682,6 +682,7 @@ def plot_Residuals(measured, predicted, squared_errors=False):
     x = np.arange(len(residuals))
     slope, intercept = np.polyfit(x, residuals, 1)
     line = slope * x + intercept
+    
 
     # Reziduumok grafikon buffer
     residuals_buffer = io.BytesIO()
@@ -693,8 +694,10 @@ def plot_Residuals(measured, predicted, squared_errors=False):
     plt.xlabel('Observation')
     plt.ylabel('Residual' if not squared_errors else 'Squared Residuals')
 
-    stat, p_value = Ljung_Box(residuals)
-    res = {'p_value': p_value, 'stat': stat}
+    stats, p_values = Ljung_Box(residuals)
+    Ljung_BoxRes = zip(p_values, stats)
+
+    whiteRes = White(residuals)
 
     if squared_errors:
         plt.title('Squared Residuals Over Observations with Linear Fit')
@@ -710,11 +713,42 @@ def plot_Residuals(measured, predicted, squared_errors=False):
     encoded_residuals_plot = base64.b64encode(residuals_buffer.getvalue()).decode('utf-8')
     plt.close()
 
-    return encoded_residuals_plot, res
+    return encoded_residuals_plot, Ljung_BoxRes, whiteRes
 
 
 def Ljung_Box(residuals):
-    result = sm.stats.diagnostic.acorr_ljungbox(residuals, lags=1, return_df=True)
-    p_value = result.loc[1, 'lb_pvalue']
-    stat = result.loc[1, 'lb_stat'] 
-    return stat, p_value
+    lag = len(residuals) // 4
+    result = sm.stats.diagnostic.acorr_ljungbox(residuals, lags=lag, return_df=True)
+    p_values = [] 
+    stats = []
+    for i in range(lag):
+        p_values.append(result.loc[i+1, 'lb_pvalue'])
+        stats.append(result.loc[i+1, 'lb_stat'] )
+
+    return stats, p_values
+
+def White(residuals):
+    """ Azt nézi, hogy a hibák varrianciája állandó-e azáltal, hogy homoszkedaszicitás vagy heteroszkedaszicitás van jelen.
+        H0: Nincs Heteroszkedaszicitás (homoszkedaszicitás) ---> ez a jó, mert állandó  hibaszórás
+        H1: Heteroscedasticity is present. --> nem jó
+        Ha p > 0.05 nem utasítjuk el a nullhipotézist, tehát nincs jelen heteroszkedaszicitás, --> ez a jó
+        Ha p < 0.05 akkor sajnos elutasítjuk H0-t, tehát a hibák varrianciája nem állandó"""
+    
+    squared_errors = np.square(residuals)
+    # Fitting a regression model to test for heteroskedasticity
+    exog = np.arange(len(squared_errors))
+    exog = sm.add_constant(exog)  # Adding a constant term
+    white_results = het_white(squared_errors, exog)
+
+    p_value_homoskedasticity = white_results[1]
+    p_value_heteroskedasticity = white_results[1]
+
+    print(f"P-érték a homoszkedaszticitás teszthez: {p_value_homoskedasticity:.4f}")
+    print(f"P-érték a heteroszkedaszticitás teszthez: {p_value_heteroskedasticity:.4f}")
+
+    if p_value_heteroskedasticity < 0.05:
+        res = f"White-teszt: <br> p = {round(p_value_heteroskedasticity, 2)} < 0.05  --> elutasítjuk H0-t. <br> A modell heteroszkedaszticitást mutat,  <br> tehát nem állandó a a hibák varrianciája, nem igazán megbízható."
+    else:
+        res = f"White-teszt: <br>  p = {round(p_value_heteroskedasticity,2)} > 0.05 --> nem utasítjuk H0-t. <br> A modell nem mutat heteroszkedaszticitást, <br> állandó a hibák varrianciája, megbízhatónak mondható."
+
+    return res

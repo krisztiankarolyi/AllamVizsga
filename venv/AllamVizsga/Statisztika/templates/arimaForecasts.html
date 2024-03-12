@@ -8,6 +8,8 @@
     <style>
         img:hover{border: 2px solid crimson;}
         .tables{
+            width: 100%;
+            padding: 5px;
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
@@ -17,9 +19,10 @@
         }
 
         .tables table{
-            width: 30%;
+            width: 32%;
             height: 100%;
         }
+        .tables tr, .tables td{width: 100%;}
 
         @media screen and (max-width: 600px) {
             .tables{
@@ -37,7 +40,7 @@
 </head>
 <br>
 <body class="has-background-dark has-text-light" style=" min-height: 100vh;">
-    <div class="container" style="max-width: 1000px; width: 90%;">
+    <div class="container" style="max-width: 1600px; width: 100%;">
         <div class="container">
             
             <div class="tables">
@@ -82,23 +85,24 @@
                                     </td>                                    
                                 </tr>
                                 <tr>
-                                    <td colspan="2">Reziduumok korrelációi az 1. lépésben (Ljung-box-teszt)</td>
+                                    <td colspan="3">Reziduumok korrelációi  (Ljung-box-teszt)</td>
                                 </tr>
                                 <tr>
-                                    <td>statisztika </td>
-                                    <td> p-érték </td>
+                                    <th>késleltetett érték</th>
+                                    <th>p-érték </th>
+                                    <th> statisztika </th>
                                 </tr>
+                                {% for p_value, stat in megye.ARIMA.ljung_box %}
                                 <tr>
-                                    <td> {{ megye.ARIMA.ljung_box.stat | floatformat:2  }} </td>
-                                    <td> {{ megye.ARIMA.ljung_box.p_value | floatformat:2  }} </td>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td> {{ p_value | floatformat:2  }} </td>
+                                    <td> {{ stat | floatformat:2  }} </td>
                                 </tr>
+                                {% endfor %}
                                 <tr>
-                                    {% if megye.ARIMA.ljung_box.p_value  > 0.05 %}  
-                                    <td colspan="2"> <p style="color: green;"> Nincs autokorreláció a hibaváltozók között </p></td>
-                                    {% else %}
-                                    <td colspan="2"> <p style="color: red;">  Autokorreláció van a hibaváltozók között </p></td>
-                                    {% endif %}
+                                    <td  colspan="3"> {{ megye.ARIMA.white  | safe }} </td>
                                 </tr>
+                             
                         </tbody>
                     </table>
                 {% endfor %} 
