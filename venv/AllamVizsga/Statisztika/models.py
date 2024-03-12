@@ -115,6 +115,7 @@ class Stat :
         self.ARIMA.fit(self.adatok)
         self.ARIMA.predict(self.teszt_adatok, self.adatok)
         self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
+        self.ARIMA.residualsPlot, self.ARIMA.ljung_box = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
 
         return self.ARIMA
         
@@ -203,6 +204,7 @@ class Stat :
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.errorHistogram = plot_error_analysis(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.residualsPlot, self.mlp_model.ljung_box = plot_Residuals(self.teszt_adatok, self.mlp_model.predictions)
 
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
@@ -216,6 +218,8 @@ class Stat :
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
         self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
+        self.lstm.residualsPlot, self.lstm.ljung_box = plot_Residuals(self.teszt_adatok, self.lstm.predictions)
+
     
     def get_month_number(self, month):
         months = {
@@ -628,27 +632,36 @@ def MAPE(becslesek, teszt_adatok):
     return mean_absolute_percentage_error
 
 
+import io
+import base64
+import numpy as np
+import matplotlib.pyplot as plt
+
 def plot_error_analysis(measured, predicted, num_bins=10):
-    # Hibahistogram
+    # Hiba-histogram
     errors = [measured[i] - predicted[i] for i in range(len(measured))]
 
     print("\n errors: \n", errors)
 
-    # Minimum és maximum hiba értéke
+    # Minimum and maximum error values
     min_error, max_error = min(errors), max(errors)
 
-    # Hiba hisztogram buffer
+    # Error histogram buffer
     hist_buffer = io.BytesIO()
 
-    # Hisztogram kiszámolása
+    # Calculate histogram
     hist_values, bin_edges = np.histogram(errors, bins=np.linspace(min_error, max_error, num_bins + 1))
 
-    # Hisztogram kirajzolása
+    # Plot histogram
     plt.bar(bin_edges[:-1], hist_values, color='skyblue', edgecolor='black', width=bin_edges[1] - bin_edges[0])
 
-    plt.xlabel('Hiba tartomány')
-    plt.ylabel('Előfordulások száma')
-    plt.title('Előrejelzési hibák eloszlása')
+    plt.xlabel('Error Range')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Prediction Errors')
+
+    # Set y-axis ticks to integer values
+    plt.yticks(np.arange(0, max(hist_values) + 1, 1))
+
     plt.savefig(hist_buffer, format="png")
     hist_buffer.seek(0)
     encoded_hist_image = base64.b64encode(hist_buffer.getvalue()).decode('utf-8')
@@ -656,3 +669,50 @@ def plot_error_analysis(measured, predicted, num_bins=10):
 
     return encoded_hist_image
 
+def plot_Residuals(measured, predicted, squared_errors=False):
+    # Reziduumok számolása
+    if squared_errors:
+        residuals = np.array([(measured[i] - predicted[i])**2 for i in range(len(measured))])
+    else:
+        residuals = np.array([measured[i] - predicted[i] for i in range(len(measured))])
+
+    # Lineáris illesztés
+    x = np.arange(len(residuals))
+    slope, intercept = np.polyfit(x, residuals, 1)
+    line = slope * x + intercept
+
+    # Reziduumok grafikon buffer
+    residuals_buffer = io.BytesIO()
+
+    # Reziduumok grafikon
+    plt.plot(residuals, marker='o', linestyle='', color='blue')
+    plt.plot(line, linestyle='-', color='red')
+
+    plt.xlabel('Observation')
+    plt.ylabel('Residual' if not squared_errors else 'Squared Residuals')
+
+    stat, p_value = Ljung_Box(residuals)
+    res = {'p_value': p_value, 'stat': stat}
+
+    if squared_errors:
+        plt.title('Squared Residuals Over Observations with Linear Fit')
+    else:
+        plt.title('Residuals Over Observations with Linear Fit')
+    
+
+    # Y tengely intervallum beállítása
+    plt.ylim(np.min(residuals) - 1, np.max(residuals) + 1)
+
+    plt.savefig(residuals_buffer, format="png")
+    residuals_buffer.seek(0)
+    encoded_residuals_plot = base64.b64encode(residuals_buffer.getvalue()).decode('utf-8')
+    plt.close()
+
+    return encoded_residuals_plot, res
+
+
+def Ljung_Box(residuals):
+    result = sm.stats.diagnostic.acorr_ljungbox(residuals, lags=1, return_df=True)
+    p_value = result.loc[1, 'lb_pvalue']
+    stat = result.loc[1, 'lb_stat'] 
+    return stat, p_value

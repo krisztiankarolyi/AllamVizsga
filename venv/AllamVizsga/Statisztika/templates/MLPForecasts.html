@@ -95,8 +95,15 @@
                         </tr>
                         <tr>
                             <td colspan="2">
-                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
+                                <a target="_blank" href="data:image/png;base64,{{ megye.mlp_model.errorHistogram }}">
                                     <img src="data:image/png;base64,{{ megye.mlp_model.errorHistogram }}">
+                                </a>
+                            </td>                                    
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <a target="_blank" href="data:image/png;base64,{{ megye.mlp_model.residualsPlot }}">
+                                    <img src="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
                                 </a>
                             </td>                                    
                         </tr>
