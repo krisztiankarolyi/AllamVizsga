@@ -121,7 +121,11 @@
                             <td> {{ p_value | floatformat:2  }} </td>
                             <td> {{ stat | floatformat:2  }} </td>
                         </tr>
+                                
                         {% endfor %}
+                        <tr>
+                            <td  colspan="3"> White teszt: {{ megye.mlp_model.white | safe }} </td>
+                        </tr>
                     </tbody>
                 </table>
             {% endfor %} 
@@ -131,6 +135,8 @@
             <thead class="has-background-info">
                 <tr>
                     <th>Model</th>
+                    <th>R2 a Tanítóadatokra való illeszkedésre</th>
+                    <th>R2 a jóslatok és a mért adatok között</th>
                     <th>MSE</th>
                     <th>RRMSE</th>
                     <th>MAPE</th>
@@ -140,15 +146,14 @@
                 {% for megye in statisztikak %}
                 <tr>
                     <td>{{ megye.idosor_nev }} MLP ({{ megye.mlp_model.modelStr }}, {{megye.mlp_model.model.n_layers_}} réteg)</td>
+                    <td>{{megye.mlp_model.r2_score | floatformat:2 }}</td>
+                    <td>{{megye.mlp_model.r2 | floatformat:2 }}</td>
                     <td>{{ megye.mlp_model.mse | floatformat:2 }} %</td>
                     <td>{{ megye.mlp_model.rrmse |floatformat:2 }} %</td>
                     <td>{{ megye.mlp_model.mape |floatformat:2 }} % </td>
                 </tr>
+                
                 {% endfor %}
-
-                <tr">
-                    <td  colspan="3"> {{ megye.mlp_model.white | safe }} </td>
-                </tr>
             </tbody>
         </table>
         <div>

@@ -107,9 +107,9 @@
                     </table>
                 {% endfor %} 
             </div>  <br>
-        </div>
-            <!-- Táblázat az ARIMA mutatókhoz -->
-            <table class="table is-bordered" style="width: 100%;">
+
+               <!-- Táblázat az ARIMA mutatókhoz -->
+               <table class="table is-bordered" style="width: 100%;">
                 <thead class="has-background-info">
                     <tr>
                         <th>Model</th>
@@ -118,6 +118,8 @@
                         <th>MSE</th>
                         <th>RRMSE</th>
                         <th>MAPE</th>
+                        <th>Standard hiba</th>
+                        <th>95%-os Konfidencia intervallum</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -129,13 +131,17 @@
                         <td>{{ megye.ARIMA.mse|floatformat:2 }} %</td>
                         <td>{{ megye.ARIMA.rrmse|floatformat:2 }} %</td>
                         <td>{{ megye.ARIMA.mape|floatformat:2 }} %</td>
+                        <td>{{ megye.ARIMA.standard_error | floatformat:2}}</td>
+                        <th>{{ megye.ARIMA.conf_int.0.0 | floatformat:2}} - {{ megye.ARIMA.conf_int.0.1  | floatformat:2}}</th>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+         
             <a target="_blank" href="data:image/png;base64,{{ diagaramEgyben }}"><img src="data:image/png;base64,{{ diagaramEgyben }}" alt="Becslések grafikonja" title="Becslések grafikonja" style=" height: 30%;"></a>   
         </div>
         <br>
+    </div>
     </div>
     </body>
 </html>

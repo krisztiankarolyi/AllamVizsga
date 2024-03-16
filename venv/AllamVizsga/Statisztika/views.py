@@ -134,7 +134,7 @@ def LSTMResults(request):
             n_steps = int(request.POST[megye.idosor_nev+"_n_steps"])
             n_pred =  int(request.POST[megye.idosor_nev+"_n_pred"])
             megye.predict_with_lstm(n_steps = n_steps, solver=solver, activation = activation, scaler = scaler, units=units,  mode = mode, epochs = epochs, n_pred =n_pred, normOut=normOut)
-            diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5,  num=5)
+            diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5,  num=5, grid=True)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.lstm.diagram = diagram
 
@@ -163,7 +163,6 @@ def LSTMResults(request):
         print(traceback.format_exc())
         return HttpResponse("Hiba történt. "+str(e))
     
-
 
 def MLPResults(request):
     try:
@@ -293,16 +292,20 @@ def arima(request):
             adatsorNevek.append(megye.ARIMA.modelName)
             becslesek = megye.ARIMA.becslesek
 
-            preds = megye.ARIMA.forecastExtra()
-            for i in preds:
-                becslesek.append(i)
-
+            if(n_pred > 0):
+                try:
+                    preds = megye.ARIMA.forecastExtra()
+                    for i in preds:
+                        becslesek.append(i)
+                except:
+                    pass
             adatsorok.append(becslesek)
 
         # Minden idősorhoz azonos x tengelyt használj
         idoszakok = beolvasott_teszt_idoszakok
-        for i in range(len(adatsorok[0]) - len(idoszakok)):
-            idoszakok.append(f"{i+1}. jóslat")
+        if(n_pred > 0):
+            for i in range(len(adatsorok[0]) - len(idoszakok)):
+                idoszakok.append(f"{i+1}. jóslat")
 
         diagaramEgyben = AbrazolEgyben(adatsorok, idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True, 3)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')

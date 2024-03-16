@@ -136,6 +136,7 @@
             <thead class="has-background-info">
                 <tr>
                     <th>Model</th>
+                    <th>R2</th>
                     <th>MSE</th>
                     <th>RRMSE</th>
                     <th>MAPE</th>
@@ -145,6 +146,7 @@
                 {% for megye in statisztikak %}
                 <tr>
                     <td>{{ megye.idosor_nev }} LSTM </td>
+                    <td>{{megye.lstm.r2}}</td>
                     <td>{{ megye.lstm.mse|floatformat:2 }} %</td>
                     <td>{{ megye.lstm.rrmse|floatformat:2 }} %</td>
                     <td>{{ megye.lstm.mape|floatformat:2 }} %</td>

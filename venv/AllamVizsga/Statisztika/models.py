@@ -115,16 +115,23 @@ class Stat :
         self.ARIMA = ARIMA(p, d, q, adatok=self.adatok, teszt_adatok=self.teszt_adatok, idoszakok=self.idoszakok, teszt_idoszakok=self.teszt_idoszakok, n_pred = n_pred )
         self.ARIMA.fit(self.adatok)
         self.ARIMA.predict(self.teszt_adatok, self.adatok)
-        self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
-        self.ARIMA.residualsPlot, self.ARIMA.ljung_box, self.ARIMA.white = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
+        try:
+            self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
+            self.ARIMA.residualsPlot, self.ARIMA.ljung_box, self.ARIMA.white = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
+        except Exception as exp:
+            print("Hiba történt")
+            print(traceback.format_exc())
+
 
         return self.ARIMA
         
     def plot_acf_and_pacf(self):
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False)
         fig.subplots_adjust(hspace=0.3)
-        plot_acf(self.adatok, lags=40, ax=ax1, title=f"Autokorreláció ({self.idosor_nev})")
-        plot_pacf(self.adatok, lags=40, ax=ax2, title=f"Parciális Autokorreláció ({self.idosor_nev})")
+        max_lags = len(self.adatok) // 2
+        lags = min(max_lags, 20)  # Set maximum lags to 40 or half the sample size, whichever is smaller
+        plot_acf(self.adatok, lags=lags, ax=ax1, title=f"Autokorreláció ({self.idosor_nev})")
+        plot_pacf(self.adatok, lags=lags, ax=ax2, title=f"Parciális Autokorreláció ({self.idosor_nev})")
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
         buffer.seek(0)
@@ -132,9 +139,10 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
 
+
     def distributionPlot(self):
         # Eredeti értékek hisztogramja
-        n, bins, _ = plt.hist(self.adatok, bins=30, color='white', edgecolor='black', density=True, stacked=True)
+        n, bins, _ = plt.hist(self.adatok, bins=30, color='white', edgecolor='black')
         plt.xlabel('Értékek')
         plt.ylabel('Gyakoriság')
         plt.title(f"{self.idosor_nev} Hisztogram")
@@ -203,6 +211,8 @@ class Stat :
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
         self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
+        self.mlp_model.r2 = r2_score(self.teszt_adatok, self.mlp_model.predictions)
+
         self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.errorHistogram = plot_error_analysis(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.residualsPlot, self.mlp_model.ljung_box, self.mlp_model.white = plot_Residuals(self.teszt_adatok, self.mlp_model.predictions)
@@ -221,6 +231,7 @@ class Stat :
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
         self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
         self.lstm.residualsPlot, self.lstm.ljung_box, self.lstm.white = plot_Residuals(self.teszt_adatok, self.lstm.predictions)
+        self.lstm.r2 = r2_score(self.teszt_adatok, self.lstm.predictions)
 
     def get_month_number(self, month):
         months = {
@@ -315,6 +326,8 @@ class ARIMA:
             model_fit = model.fit()
             output = model_fit.forecast()
             predictions.append(output[0])
+            self.standard_error = model_fit.bic
+            self.conf_int = model_fit.conf_int(cols=None, alpha=0.05)
             obs = teszt_adatok[t]
             history.append(obs)
         
@@ -325,7 +338,10 @@ class ARIMA:
         self.mse = MSE(teszt_adatok, self.becslesek)
         self.rrmse = RRMSE(teszt_adatok, self.becslesek)
         self.mape = MAPE(teszt_adatok, self.becslesek)
-        self.r_squared = r2_score(teszt_adatok, self.becslesek)
+        try:
+            self.r_squared = r2_score(teszt_adatok, self.becslesek)
+        except:
+            self.r_squared = "N/A"
 
     
     def forecastExtra(self):
@@ -372,6 +388,7 @@ class MLP:
 
         self.model.fit(X_train, y_train)
         self.weights = [layer_weights for layer_weights in self.model.coefs_]
+        self.r2_score = self.model.score(self.x_train, self.y_train)
 
     def predict(self, X_test, normalize=True):
         if self.scalerMode != "-" and normalize:
@@ -426,7 +443,7 @@ class Vanilla_LSTM:
         self.normalization(self.scalerStr, normOut)
         self.trainModel()
         self.predict()      
-        self.envaluate()
+        self.kiertekel()
    
     
     def createMLsets(self):
@@ -530,7 +547,7 @@ class Vanilla_LSTM:
         return forecasts
 
 
-    def envaluate(self):
+    def kiertekel(self):
         self.forecastZipped = zip(self.predictions, self.y_test)
         self.mse = MSE(self.predictions, self.y_test)
         self.rrmse = RRMSE(self.predictions, self.y_test)
