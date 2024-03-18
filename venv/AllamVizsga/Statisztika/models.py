@@ -317,6 +317,7 @@ class ARIMA:
         self.model = sm.tsa.ARIMA(adatok, order=(self.p, self.d, self.q))
         self.model_fit = self.model.fit()
         self.aic = self.model_fit.aic
+        self.bic = self.model_fit.bic
     
     def predict(self, teszt_adatok, adatok):
         history = [x for x in adatok]
