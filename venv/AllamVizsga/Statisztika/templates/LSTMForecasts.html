@@ -107,25 +107,6 @@
                                 </a>
                             </td>                                    
                         </tr>
-
-                        <tr>
-                            <td colspan="3">Reziduumok korrelációi  (Ljung-box-teszt)</td>
-                        </tr>
-                        <tr>
-                            <th>késleltetett érték</th>
-                            <th>p-érték </th>
-                            <th> statisztika </th>
-                        </tr>
-                        {% for p_value, stat in megye.lstm.ljung_box %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td> {{ p_value | floatformat:2  }} </td>
-                            <td> {{ stat | floatformat:2  }} </td>
-                        </tr>
-                        {% endfor %}
-                        <tr>
-                            <td  colspan="3"> {{ megye.lstm.white | safe }} </td>
-                        </tr>
                 </tbody>
                     </tbody>
                 </table>

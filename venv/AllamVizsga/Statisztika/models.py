@@ -43,7 +43,8 @@ class Stat :
         self.max = np.max(self.adatok)
         self.minDatum = self.idoszakok[list.index(self.adatok, self.min)]
         self.maxDatum = self.idoszakok[list.index(self.adatok, self.max)]
-        self.Stationarity()
+        self.StationarityTest()
+        self.distributionPlot = self.distributionPlot()
 
         ks_statistic, p_value = kstest(self.adatok, 'norm')
         self.Kolmogorov_Smirnov['statisztika'] = ks_statistic
@@ -59,7 +60,7 @@ class Stat :
     def setTesztIdoszakok(self, idoszakok: list):
         self.teszt_idoszakok = idoszakok
 
-    def Stationarity(self):
+    def StationarityTest(self):
         adf_result = adfuller(self.adatok)
         self.adf["adf_stat"] = round(adf_result[0], 2)
         self.adf["p_value"] = round(adf_result[1], 2)
@@ -116,12 +117,15 @@ class Stat :
         self.ARIMA.fit(self.adatok)
         self.ARIMA.predict(self.teszt_adatok, self.adatok)
         try:
-            self.ARIMA.errorHistogram = plot_error_analysis(self.teszt_adatok, self.ARIMA.becslesek)
-            self.ARIMA.residualsPlot, self.ARIMA.ljung_box, self.ARIMA.white = plot_Residuals(self.teszt_adatok, self.ARIMA.becslesek)
+            self.ARIMA.residuals = np.array([self.teszt_adatok[i] - self.ARIMA.becslesek[i] for i in range(len(self.teszt_adatok))])
+            self.ARIMA.errorHistogram = plot_error_analysis(residuals=self.ARIMA.residuals, name=self.idosor_nev+" "+self.ARIMA.modelName)
+            self.ARIMA.residualsPlot = plot_Residuals(residuals=self.ARIMA.residuals, name=self.idosor_nev+" "+self.ARIMA.modelName)
+            self.ARIMA.white = White(self.ARIMA.residuals)
+            self.ARIMA.becsleseksZipped  = zip(self.ARIMA.becslesek, self.teszt_adatok, self.ARIMA.residuals)
+            
         except Exception as exp:
             print("Hiba történt")
             print(traceback.format_exc())
-
 
         return self.ARIMA
         
@@ -141,38 +145,25 @@ class Stat :
 
 
     def distributionPlot(self):
-        # Eredeti értékek hisztogramja
-        n, bins, _ = plt.hist(self.adatok, bins=30, color='white', edgecolor='black')
+        bins = int(max(self.adatok) - min(self.adatok))
+        n, bins, _ = plt.hist(self.adatok, bins=bins, color='blue', edgecolor='black')
         plt.xlabel('Értékek')
         plt.ylabel('Gyakoriság')
         plt.title(f"{self.idosor_nev} Hisztogram")
-
-
-        mean_val = np.mean(self.adatok)
-        std_dev = np.std(self.adatok)
         xmin, xmax = plt.xlim()
         x = np.linspace(xmin, xmax, 100)
-        p = ((1 / (np.sqrt(2 * np.pi) * std_dev)) *
-                np.exp(-0.5 * ((x - mean_val) / std_dev)**2))
+        # Az x tengely feliratainak beállítása a létrehozott csoportokra
+        plt.xticks(bins)
 
-        # Normális Gauss-görbe
-        p = p * np.sum(n) * np.diff(bins)[0]
-        plt.plot(x, p, 'r--', label='Normál eloszlás')
+        plt.plot(bins[:-1], n, color='red', marker='o', linestyle='-', linewidth=2, markersize=6)
 
-        # Tényleges gyakoriságok zöld vonallal
-        plt.plot(bins[:-1], n, color='blue', marker='o', linestyle='-', linewidth=2, markersize=6, label='Tényleges Gyakoriság')
-
-        plt.legend()
         plt.tight_layout()
-
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
         buffer.seek(0)
         plt.close()
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         return encoded_image
-
-
         
     def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3, n_pred=6):
         if not self.teszt_adatok:
@@ -208,29 +199,35 @@ class Stat :
         self.futureforecasts_y, self.futureforecasts_x = self.mlp_model.forecastFutureValues(n_pred, self.X_test)
 
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
-        self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok)
+
         self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.r2 = r2_score(self.teszt_adatok, self.mlp_model.predictions)
-
         self.mlp_model.mape = MAPE(self.teszt_adatok, self.mlp_model.predictions)
-        self.mlp_model.errorHistogram = plot_error_analysis(self.teszt_adatok, self.mlp_model.predictions)
-        self.mlp_model.residualsPlot, self.mlp_model.ljung_box, self.mlp_model.white = plot_Residuals(self.teszt_adatok, self.mlp_model.predictions)
-         
 
+        self.mlp_model.residuals =  np.array([self.teszt_adatok[i] - self.mlp_model.predictions[i] for i in range(len(self.teszt_adatok))])
+        self.mlp_model.white = White(self.mlp_model.residuals)
+        self.mlp_model.residualsPlot = plot_Residuals(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
+        self.mlp_model.errorHistogram = plot_error_analysis(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
+        self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok, self.mlp_model.residuals)
+         
    
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
                            units: int = 64, n_steps: int = 1, input_dim = 100, loss="mse", n_features = 1, 
                            epochs: int = 200, verbose: int = 0, n_pred:int = 6, normOut: bool = False):
 
-        #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
+        #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalmazott.
         test_data = self.adatok[-n_steps:]  + self.teszt_adatok
         learning_data = self.adatok[:-n_steps]
 
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
         self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
-        self.lstm.residualsPlot, self.lstm.ljung_box, self.lstm.white = plot_Residuals(self.teszt_adatok, self.lstm.predictions)
+        self.residuals = np.array([self.teszt_adatok[i] - self.lstm.predictions[i] for i in range(len(self.teszt_adatok))])
+        self.lstm.residualsPlot = plot_Residuals(self.residuals)
+        self.lstm.white = White(self.residuals)
+
+        #r2 a a joslatokra (kevesbe relevans)
         self.lstm.r2 = r2_score(self.teszt_adatok, self.lstm.predictions)
 
     def get_month_number(self, month):
@@ -333,7 +330,6 @@ class ARIMA:
             history.append(obs)
         
         self.becslesek = predictions
-        self.becsleseksZipped  = zip(predictions, teszt_adatok)
 
         # Egyéb értékek kiszámolása
         self.mse = MSE(teszt_adatok, self.becslesek)
@@ -383,7 +379,11 @@ class MLP:
 
     def train_model(self, X_train, y_train):
         if self.scalerMode != "-":
-            X_train = self.scaler.fit_transform(X_train)
+            if(self.scalerMode == "log"):
+                X_train = np.log(X_train)
+            else:
+                X_train = self.scaler.fit_transform(X_train)   
+   
         self.x_train = X_train
         self.y_train = y_train
 
@@ -393,7 +393,10 @@ class MLP:
 
     def predict(self, X_test, normalize=True):
         if self.scalerMode != "-" and normalize:
-            X_test = self.scaler.transform(X_test)   
+            if(self.scalerMode == "log"):
+                X_test = np.log(X_test)
+            else:
+                X_test = self.scaler.transform(X_test)   
    
         return self.model.predict(X_test)
     
@@ -414,7 +417,6 @@ class MLP:
         print(f"future firecast: x={x_axis}, \n y={future_forecasts}")
         return future_forecasts, x_axis
     
-          
 class Vanilla_LSTM:
     def __init__(self, learning_data, test_data, units:int = 50, activation: str = "relu", 
                   solver: str = "adam", scaler: str = "None", n_features: int = 1, n_steps: int = 3, input_dim: int = 100, loss: str ="mse",  epochs: int = 200, verbose: int = 0, n_pred:int = 6, name: str="default", normOut: bool = False):
@@ -478,11 +480,12 @@ class Vanilla_LSTM:
                 self.y_test_Normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
 
         if scaler == "log":
-            print("A tanító- és tesztadatok logaritmizálással normalizálva lettek")
+            print("A tanító- és teszt inputok logaritmizálással normalizálva lettek")
             self.x_train_Normalized = np.log(self.x_train, out=np.zeros_like(self.x_train), where=(self.x_train != 0))
             self.x_test_Normalized = np.log(self.x_test, out=np.zeros_like(self.x_test), where=(self.x_test != 0))
             
             if normalizeOutputs:
+                "A tanító és teszt kimenetek is normalizálva lesznek"
                 self.y_train_Normalized = np.log(self.y_train).reshape(-1, 1)
                 self.y_test_Normalized = np.log(self.y_test).reshape(-1, 1)
 
@@ -508,6 +511,7 @@ class Vanilla_LSTM:
                 if self.scalerStr == "log":
                     self.predictions = np.exp(self.predictions)
                 else:
+                  self.predictionsNormalized = self.predictions
                   self.predictions = self.scaler.inverse_transform(self.predictions)
         else:
             self.predictions = self.model.predict(self.x_test, verbose=self.verbose)
@@ -540,6 +544,7 @@ class Vanilla_LSTM:
                 forecasts = self.scaler.inverse_transform(forecasts)
 
             elif self.scalerStr =="log":
+                print("bevslések visszalakitva exp segítségével")
                 forecasts = np.exp(forecasts)
 
         forecasts = [item for sublist in forecasts for item in sublist]
@@ -597,6 +602,9 @@ class Vanilla_LSTM:
         
         return res
     
+class AutoARIMA:
+    def __init__(self) -> None:
+        pass
 
 def Slide(input_array, new_value):
     # Ellenőrizze, hogy a bemeneti adatszerkezet egy 2D Numpy tömb
@@ -657,27 +665,23 @@ import base64
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_error_analysis(measured, predicted, num_bins=10):
-    # Hiba-histogram
-    errors = [measured[i] - predicted[i] for i in range(len(measured))]
-
-    print("\n errors: \n", errors)
-
+def plot_error_analysis(residuals, num_bins=10, name=""):
     # Minimum and maximum error values
-    min_error, max_error = min(errors), max(errors)
+    min_error, max_error = min(residuals), max(residuals)
+    num_bins = int((len(residuals)) * 0.5)
 
     # Error histogram buffer
     hist_buffer = io.BytesIO()
 
     # Calculate histogram
-    hist_values, bin_edges = np.histogram(errors, bins=np.linspace(min_error, max_error, num_bins + 1))
+    hist_values, bin_edges = np.histogram(residuals, bins=np.linspace(min_error, max_error, num_bins + 1))
 
     # Plot histogram
-    plt.bar(bin_edges[:-1], hist_values, color='skyblue', edgecolor='black', width=bin_edges[1] - bin_edges[0])
+    plt.bar(bin_edges[:-1], hist_values, color='blue', edgecolor='black', width=bin_edges[1] - bin_edges[0])
 
-    plt.xlabel('Error Range')
-    plt.ylabel('Frequency')
-    plt.title('Distribution of Prediction Errors')
+    plt.xlabel('Tartomány')
+    plt.ylabel('Gyakoriság')
+    plt.title(name+' előrejelzési hibák eloszlása')
 
     # Set y-axis ticks to integer values
     plt.yticks(np.arange(0, max(hist_values) + 1, 1))
@@ -689,49 +693,26 @@ def plot_error_analysis(measured, predicted, num_bins=10):
 
     return encoded_hist_image
 
-def plot_Residuals(measured, predicted, squared_errors=False):
-    # Reziduumok számolása
-    if squared_errors:
-        residuals = np.array([(measured[i] - predicted[i])**2 for i in range(len(measured))])
-    else:
-        residuals = np.array([measured[i] - predicted[i] for i in range(len(measured))])
-
+def plot_Residuals(residuals, name=""):
     # Lineáris illesztés
     x = np.arange(len(residuals))
     slope, intercept = np.polyfit(x, residuals, 1)
     line = slope * x + intercept
-    
-
     # Reziduumok grafikon buffer
     residuals_buffer = io.BytesIO()
-
     # Reziduumok grafikon
     plt.plot(residuals, marker='o', linestyle='', color='blue')
     plt.plot(line, linestyle='-', color='red')
-
-    plt.xlabel('Observation')
-    plt.ylabel('Residual' if not squared_errors else 'Squared Residuals')
-
-    stats, p_values = Ljung_Box(residuals)
-    Ljung_BoxRes = zip(p_values, stats)
-
-    whiteRes = White(residuals)
-
-    if squared_errors:
-        plt.title('Squared Residuals Over Observations with Linear Fit')
-    else:
-        plt.title('Residuals Over Observations with Linear Fit')
-    
-
+    plt.xlabel('Előrejelzés sorszáma')
+    plt.ylabel('Reziduum')
+    plt.title(name+' Előrejelzések reziduumai')
     # Y tengely intervallum beállítása
-    plt.ylim(np.min(residuals) - 1, np.max(residuals) + 1)
-
+    plt.ylim(np.min(residuals) - 0.75, np.max(residuals) + 0.75)
     plt.savefig(residuals_buffer, format="png")
     residuals_buffer.seek(0)
     encoded_residuals_plot = base64.b64encode(residuals_buffer.getvalue()).decode('utf-8')
     plt.close()
-
-    return encoded_residuals_plot, Ljung_BoxRes, whiteRes
+    return encoded_residuals_plot
 
 
 def Ljung_Box(residuals):
@@ -751,11 +732,9 @@ def White(residuals):
         H1: Heteroscedasticity is present. --> nem jó
         Ha p > 0.05 nem utasítjuk el a nullhipotézist, tehát nincs jelen heteroszkedaszicitás, --> ez a jó
         Ha p < 0.05 akkor sajnos elutasítjuk H0-t, tehát a hibák varrianciája nem állandó"""
-    
     squared_errors = np.square(residuals)
-    # Fitting a regression model to test for heteroskedasticity
     exog = np.arange(len(squared_errors))
-    exog = sm.add_constant(exog)  # Adding a constant term
+    exog = sm.add_constant(exog) 
     white_results = het_white(squared_errors, exog)
 
     p_value_homoskedasticity = white_results[1]

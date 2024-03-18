@@ -72,57 +72,43 @@
                 <table class="table is-bordered" >
                     <thead class="has-background-info">
                         <tr>
-                            <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.idosor_nev}} MLP</strong> {{megye.mlp_model.modelStr}} </td>
+                            <td colspan="3" class="has-text-centered has-text-light"><strong>{{megye.idosor_nev}} MLP</strong> {{megye.mlp_model.modelStr}} </td>
                         </tr>
                         <tr>
-                            <th>Előrejelzés</th>
                             <th>Valódi adat</th>
+                            <th>Előrejelzés</th>
+                            <th>Hiba</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for prediction, realValue in megye.MLPResultsZipped %}
+                        {% for prediction, realValue, residual in megye.MLPResultsZipped %}
                         <tr>
-                            <td>{{ prediction | floatformat:2 }}</td>
                             <td>{{ realValue | floatformat:2  }}</td>
+                            <td>{{ prediction | floatformat:2 }}</td>
+                            <td>{{ residual | floatformat:2  }}</td>
                         </tr>
                         {% endfor %}
                         <tr>
-                            <td colspan="2">
+                            <td colspan="3">
                                 <a target="_blank" href="data:image/png;base64,{{ megye.mlp_model.diagram }}">
                                 <img src="data:image/png;base64,{{megye.mlp_model.diagram}}" style="width: 100%;" > 
                                 </a>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="2">
+                            <td colspan="3">
                                 <a target="_blank" href="data:image/png;base64,{{ megye.mlp_model.errorHistogram }}">
                                     <img src="data:image/png;base64,{{ megye.mlp_model.errorHistogram }}">
                                 </a>
                             </td>                                    
                         </tr>
                         <tr>
-                            <td colspan="2">
+                            <td colspan="3">
                                 <a target="_blank" href="data:image/png;base64,{{ megye.mlp_model.residualsPlot }}">
                                     <img src="data:image/png;base64,{{ megye.mlp_model.residualsPlot }}">
                                 </a>
                             </td>                                    
                         </tr>
-                        <tr>
-                            <td colspan="3">Reziduumok korrelációi  (Ljung-box-teszt)</td>
-                        </tr>
-                        <tr>
-                            <th>késleltetett érték</th>
-                            <th>p-érték </th>
-                            <th> statisztika </th>
-                        </tr>
-                        {% for p_value, stat in megye.mlp_model.ljung_box %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td> {{ p_value | floatformat:2  }} </td>
-                            <td> {{ stat | floatformat:2  }} </td>
-                        </tr>
-                                
-                        {% endfor %}
                         <tr>
                             <td  colspan="3"> White teszt: {{ megye.mlp_model.white | safe }} </td>
                         </tr>

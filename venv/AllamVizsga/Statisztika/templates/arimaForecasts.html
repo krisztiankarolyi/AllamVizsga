@@ -49,59 +49,47 @@
                     <table class="table is-bordered">
                         <thead class="has-background-info">
                             <tr>
-                                <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.ARIMA.modelName}}</strong></td>
+                                <td colspan="3" class="has-text-centered has-text-light"><strong>{{megye.ARIMA.modelName}}</strong></td>
                             </tr>
                             <tr>
-                                <th>Becslések</th>
                                 <th>Valódi adatok</th>
+                                <th>Becslések</th>
+                                <th>Hibák</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for becsles, mertadat in megye.ARIMA.becsleseksZipped %}
+                            {% for becsles, mertadat, residual in megye.ARIMA.becsleseksZipped %}
                                 <tr>
-                                    <td>{{ becsles | floatformat:2 }}</td>
                                     <td>{{ mertadat | floatformat:2 }}</td>
+                                    <td>{{ becsles | floatformat:2 }}</td>
+                                    <td>{{ residual | floatformat:2 }}</td>
                                 </tr>
                             {% endfor %}
                                 <tr>
-                                    <td colspan="2">
+                                    <td colspan="3">
                                         <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.diagram }}">
                                             <img src="data:image/png;base64,{{ megye.ARIMA.diagram }}">
                                         </a>
                                     </td>                                    
                                 </tr>
                                 <tr>
-                                    <td colspan="2">
+                                    <td colspan="3">
                                         <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
                                             <img src="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
                                         </a>
                                     </td>                                    
                                 </tr>
                                 <tr>
-                                    <td colspan="2">
+                                    <td colspan="3">
                                         <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
                                             <img src="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
                                         </a>
                                     </td>                                    
                                 </tr>
-                                <tr>
-                                    <td colspan="3">Reziduumok korrelációi  (Ljung-box-teszt)</td>
-                                </tr>
-                                <tr>
-                                    <th>késleltetett érték</th>
-                                    <th>p-érték </th>
-                                    <th> statisztika </th>
-                                </tr>
-                                {% for p_value, stat in megye.ARIMA.ljung_box %}
-                                <tr>
-                                    <td>{{ forloop.counter }}</td>
-                                    <td> {{ p_value | floatformat:2  }} </td>
-                                    <td> {{ stat | floatformat:2  }} </td>
-                                </tr>
-                                {% endfor %}
+                              
                                 <tr>
                                     <td  colspan="3"> {{ megye.ARIMA.white  | safe }} </td>
-                                </tr>
+                                </tr
                              
                         </tbody>
                     </table>
@@ -118,8 +106,6 @@
                         <th>MSE</th>
                         <th>RRMSE</th>
                         <th>MAPE</th>
-                        <th>Standard hiba</th>
-                        <th>95%-os Konfidencia intervallum</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -131,8 +117,6 @@
                         <td>{{ megye.ARIMA.mse|floatformat:2 }} %</td>
                         <td>{{ megye.ARIMA.rrmse|floatformat:2 }} %</td>
                         <td>{{ megye.ARIMA.mape|floatformat:2 }} %</td>
-                        <td>{{ megye.ARIMA.standard_error | floatformat:2}}</td>
-                        <th>{{ megye.ARIMA.conf_int.0.0 | floatformat:2}} - {{ megye.ARIMA.conf_int.0.1  | floatformat:2}}</th>
                     </tr>
                     {% endfor %}
                 </tbody>

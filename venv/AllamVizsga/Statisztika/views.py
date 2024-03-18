@@ -62,7 +62,7 @@ def home(request):
             adatsorNevek.append(col)
             adatsorok.append(df[col].tolist())
         
-        diagram = AbrazolEgyben(adatsorok, idoPontok, adatsorNevek, suruseg, "Székelyföld munkanélküliségi rátái", "",  grid=True, y_min=3, y_max=6, num=4)
+        diagram = AbrazolEgyben(adatsorok, idoPontok, adatsorNevek, suruseg, "Székelyföld munkanélküliségi rátái", "",  grid=True, num=4)
         diagram = base64.b64encode(diagram.read()).decode('utf-8')
 
         global statisztikak
@@ -134,7 +134,7 @@ def LSTMResults(request):
             n_steps = int(request.POST[megye.idosor_nev+"_n_steps"])
             n_pred =  int(request.POST[megye.idosor_nev+"_n_pred"])
             megye.predict_with_lstm(n_steps = n_steps, solver=solver, activation = activation, scaler = scaler, units=units,  mode = mode, epochs = epochs, n_pred =n_pred, normOut=normOut)
-            diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "", 2, 5, 0.5,  num=5, grid=True)
+            diagram = AbrazolEgyben([megye.lstm.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" LSTM", megye.idosor_nev+" mért"], 1, megye.idosor_nev+"LSTM  előrejelzések", "",  num=5, grid=True)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.lstm.diagram = diagram
 
@@ -182,7 +182,10 @@ def MLPResults(request):
             megye.predict_with_mlp(actFunction=actFunction, hidden_layers=hidden_layers, max_iters= int(maxIters),
                                     scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin,
                                       solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays, n_pred =n_pred) 
-            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" MLP", "", 2, 6, 0.5, True, num = 6)
+            min_=min(len(megye.mlp_model.predictions), len(megye.teszt_adatok))
+            max_=max(len(megye.mlp_model.predictions), len(megye.teszt_adatok))
+            step = (min_ - max_)/10
+            diagram = AbrazolEgyben([megye.mlp_model.predictions, megye.teszt_adatok], megye.teszt_idoszakok, [megye.idosor_nev+" MLP", megye.idosor_nev+" mért"], 1, megye.idosor_nev+" MLP", "", min_, max_, step, True, num = 6)
             diagram = base64.b64encode(diagram.read()).decode('utf-8')
             megye.mlp_model.diagram = diagram
 
@@ -197,7 +200,7 @@ def MLPResults(request):
             adatsorok.append(y)
         
         x_axis = beolvasott_teszt_idoszakok + statisztikak[0].futureforecasts_x
-        diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True)
+        diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", min_, max_, step, True)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
         return render(request, 'MLPForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
         
@@ -279,9 +282,13 @@ def arima(request):
                 megye.ARIMA.modelName = title
                 megyek.append(megye.idosor_nev)
                 adatsorok.append(megye.ARIMA.becslesek)
+                min_=min(len(megye.ARIMA.becslesek), len(megye.teszt_adatok))
+                max_=max(len(megye.ARIMA.becslesek), len(megye.teszt_adatok))
+                step = (min_ - max_)/10
+
                 diagram = AbrazolEgyben([megye.ARIMA.becslesek, megye.teszt_adatok], 
                             megye.teszt_idoszakok, [megye.ARIMA.modelName, 
-                             megye.idosor_nev+" mért"], 1, megye.idosor_nev+" megye előrejelzett munkanélküliségi rátái", "", 2, 5, 0.5, True, 2)
+                             megye.idosor_nev+" mért"], 1, megye.idosor_nev+" megye előrejelzett munkanélküliségi rátái", "", min_, max_, step, True, 2)
                 diagram = base64.b64encode(diagram.read()).decode('utf-8')
                 megye.ARIMA.diagram = diagram
     
@@ -301,13 +308,9 @@ def arima(request):
                     pass
             adatsorok.append(becslesek)
 
-        # Minden idősorhoz azonos x tengelyt használj
-        idoszakok = beolvasott_teszt_idoszakok
-        if(n_pred > 0):
-            for i in range(len(adatsorok[0]) - len(idoszakok)):
-                idoszakok.append(f"{i+1}. jóslat")
 
-        diagaramEgyben = AbrazolEgyben(adatsorok, idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True, 3)
+        idoszakok = beolvasott_teszt_idoszakok
+        diagaramEgyben = AbrazolEgyben(adatsorok, idoszakok, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", grid=True, num=3)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
         return render(request, "arimaForecasts.html", {"statisztikak": statisztikak, "diagaramEgyben": diagaramEgyben})
