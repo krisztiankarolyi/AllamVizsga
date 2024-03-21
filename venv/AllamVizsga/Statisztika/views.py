@@ -179,9 +179,13 @@ def MLPResults(request):
             randomStateMin = int(request.POST[megye.idosor_nev+'_random_state_min'])
             randomStateMax = int(request.POST[megye.idosor_nev+'_random_state_max'])
             hidden_layers = tuple(map(int, request.POST[megye.idosor_nev+'_hidden_layers'].split(',')))
+            normOut = False
+            if megye.idosor_nev+'_normOut' in request.POST:
+                normOut = True
+
             megye.predict_with_mlp(actFunction=actFunction, hidden_layers=hidden_layers, max_iters= int(maxIters),
-                                    scaler=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin,
-                                      solver=solver, targetRRMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays, n_pred =n_pred) 
+                                    scalerMode=scaler, randomStateMax=randomStateMax, randomStateMin=randomStateMin,
+                                      solver=solver, targetMSE=targetRRMSE, x_mode=x_mode, n_delays = n_delays, n_pred =n_pred, normOut = normOut) 
             min_=min(len(megye.mlp_model.predictions), len(megye.teszt_adatok))
             max_=max(len(megye.mlp_model.predictions), len(megye.teszt_adatok))
             step = (min_ - max_)/10

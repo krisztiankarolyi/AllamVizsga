@@ -11,6 +11,7 @@ from statsmodels.tsa.stattools import kpss
 from sklearn.metrics import r2_score
 import base64
 import io
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 from sklearn.metrics import mean_squared_error, accuracy_score
@@ -165,40 +166,70 @@ class Stat :
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         return encoded_image
         
-    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, scaler="standard", randomStateMax=70, randomStateMin=50, solver="adam", targetRRMSE=0.6, x_mode = "delayed", n_delays = 3, n_pred=6):
+    def predict_with_mlp(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, 
+                         scalerMode="standard", randomStateMax=70, randomStateMin=50, solver="adam", 
+                         targetMSE=0.1, x_mode = "delayed", n_delays = 3, n_pred=6, normOut: bool = False):
         if not self.teszt_adatok:
             print("Nincsenek tesztelési adatok.")
             return          
+        
+        # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
+        #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
+        test_data = self.adatok[-n_delays:]  + self.teszt_adatok
+        learning_data = self.adatok[:-n_delays]
+    
+        self.X_train, self.y_train = split_sequence(learning_data, n_delays)
+        self.X_test, self.y_test = split_sequence(test_data, n_delays)
+        
+        # normalizálás ha kell 
+        scaler = None
+        if (scalerMode == "robust"):
+            scaler = RobustScaler()
+        if (scalerMode == "minmax"):
+           scaler = MinMaxScaler()
+        if(scalerMode == "standard"):
+            scaler = StandardScaler()
 
-        if(x_mode == "date"):
-            self.dependency = "év - hónap párok"
-            # az adatok a megfigyelések időpontjaitól függnek (év -hónap száma párosok)
-            data = self.idoszakok + self.teszt_idoszakok
-            target = self.adatok + self.teszt_adatok
-            data = [item.split() for item in data]
-            data = [[int(item[0]), self.get_month_number(item[1])] for item in data]
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data, target, test_size=len(self.teszt_adatok), shuffle=False)
+        if scalerMode != "-":
+            if(scalerMode == "log"):
+                self.X_train = np.log(self.X_train)
+                self.X_test = np.log(self.X_test)
+                if(normOut):
+                    self.y_test = np.log(self.y_test)
+                    self.y_train = np.log(self.y_train)
+            else:
+                self.X_train = scaler.fit_transform(np.array(self.X_train))
+                self.X_test = scaler.transform(np.array(self.X_test))
+                if(normOut):
+                    self.y_test = scaler.fit_transform(self.y_test.reshape(-1, 1))
+                    self.y_train = scaler.transform(self.y_train.reshape(-1, 1))
+                    self.y_test = [item for sublist in self.y_test for item in sublist]
+                    self.y_train =[item for sublist in self.y_train for item in sublist]
 
-        else:
-            # az adatok n darab korábbi megfigyeléstől függnek (késleltetett értékek)
-            #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalamzott.
-            test_data = self.adatok[-n_delays:]  + self.teszt_adatok
-            learning_data = self.adatok[:-n_delays]
-
-            self.X_train, self.y_train = split_sequence(learning_data, n_delays)
-            self.X_test, self.y_test = split_sequence(test_data, n_delays)
-
+                
+        print(f"\n --------------------------------- \n x_train = {self.X_train}")
+        print(f"\n --------------------------------- \n y_train = {self.y_train}")
+        print(f"\n --------------------------------- \n x_test = {self.X_test}")
+        print(f"\n --------------------------------- \n y_test = {self.y_test}")
 
         self.X_Train_Y_Train_Zipped = zip(self.X_train, self.y_train)
         self.X_Test_Y_Test_Zipped = zip(self.X_test, self.y_test)
 
-        self.random_state = self.find_best_random_state(actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetRRMSE=targetRRMSE)
-        self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, solver=solver)
+        self.random_state = self.find_best_random_state(y_train=self.y_train, x_train=self.X_train, actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetMSE=targetMSE, y_test=self.y_test)
+        self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, scalerMode=scalerMode, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
-        
         self.futureforecasts_y, self.futureforecasts_x = self.mlp_model.forecastFutureValues(n_pred, self.X_test)
 
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
+        # visszatranstformálás ha kell
+        if scalerMode != "-" and normOut:
+            if(scalerMode == "log"):
+                self.mlp_model.predictions = np.exp(self.mlp_model.predictions)
+            else:
+                self.mlp_model.predictions = scaler.inverse_transform(self.mlp_model.predictions.reshape(-1, 1))
+                self.mlp_model.predictions = [item for sublist in self.mlp_model.predictions for item in sublist]
+       
+        self.mlp_model.predictions = np.array(self.mlp_model.predictions)
 
         self.mlp_model.mse = MSE(self.teszt_adatok, self.mlp_model.predictions)
         self.mlp_model.rrmse = RRMSE(self.teszt_adatok, self.mlp_model.predictions)
@@ -212,8 +243,9 @@ class Stat :
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok, self.mlp_model.residuals)
          
    
-    def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", scaler:str = "",
-                           units: int = 64, n_steps: int = 1, input_dim = 100, loss="mse", n_features = 1, 
+    def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", 
+                          scaler:str = "", units: int = 64, n_steps: int = 1, 
+                          input_dim: int = 100, loss: str ="mse", n_features: int = 1, 
                            epochs: int = 200, verbose: int = 0, n_pred:int = 6, normOut: bool = False):
 
         #adatok átcsoportosítása, hogy kijöjjön annyi jóslat, amennyit a test data alapból tartalmazott.
@@ -247,23 +279,25 @@ class Stat :
         }
         return months[month]
 
-    def find_best_random_state(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, random_state_min=50, random_state_max=70, scaler="standard", solver="adam", targetRRMSE=0.06):
+    def find_best_random_state(self, x_train, y_train,  actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=3000, 
+                               random_state_min=50, random_state_max=70, scaler="standard", solver="adam", targetMSE=0.01, y_test = []):
         best_random_state = None
-        best_rrmse = float(1000) 
-
+        best_mse = float(1000) 
+        #print(f"\n -------------------------- \n preds: {predictions} \n ------------vs------------\n target: {self.y_test} ")
+       
         for random_state in range(random_state_min, random_state_max+1):
             mlp_model = MLP(actFunction=actFunction, hidden_layers = hidden_layers, max_iters = max_iters, random_state = random_state, scaler = scaler, solver=solver)
-            mlp_model.train_model(self.X_train, self.y_train)
+            mlp_model.train_model(x_train, y_train)
             predictions = mlp_model.predict(self.X_test)
-            rrmse = RRMSE(predictions, self.teszt_adatok)
-            print(f"trying {self.idosor_nev}'s MLP prediction with random state {random_state} --> RRMSE: {rrmse}")
+            mse = mean_squared_error(self.y_test, predictions)
+            print(f"trying {self.idosor_nev}'s MLP prediction with random state {random_state} --> MSE: {mse}")
 
-            if rrmse < best_rrmse:
-                best_rrmse = rrmse
+            if mse < best_mse:
+                best_mse = mse
                 best_random_state = random_state
             
-            if round(rrmse, 2) <= targetRRMSE:
-                print(f"target RRMSE{targetRRMSE} reached, stopping search...")
+            if round(mse, 2) <= targetMSE:
+                print(f"target RRMSE{targetMSE} reached, stopping search...")
                 return best_random_state
 
         self.random_state = best_random_state
@@ -348,14 +382,15 @@ class ARIMA:
   
 class MLP:
     def __init__(self, actFunction="logistic", hidden_layers=(12, 12, 12), max_iters=2000, 
-                 random_state=50, units: int = 50, scaler="standard", solver="adam"):
+                 random_state=50, units: int = 50, scaler=None, scalerMode="-", solver="adam",):
         self.hidden_layers = hidden_layers
         self.NrofHiddenLayers = len(hidden_layers)
         self.max_iters = max_iters
         self.random_state = random_state
         self.activation = actFunction
         self.model = MLPRegressor(hidden_layer_sizes=hidden_layers, solver=solver,  activation=actFunction, max_iter=max_iters, random_state=random_state)
-        self.scaler = StandardScaler()
+        self.scaler = scaler
+        self.scalerMode = scalerMode
         self.predictions = []
         self.mse = 0
         self.weights = []
@@ -363,8 +398,6 @@ class MLP:
         self.mape = 0
         self.diagram = None
         self.accuracy = 0
-        self.scalerMode = scaler
-        self.scaler = StandardScaler()
         self.modelStr = self.NrofHiddenLayers * '{}, '
         self.modelStr = "("+self.modelStr.format(*hidden_layers)[:-1]+")"
         self.x_test = []
@@ -372,33 +405,15 @@ class MLP:
         self.x_train = []
         self.y_train = []
 
-        if (scaler == "robust"):
-            self.scaler = RobustScaler()
-        if (scaler == "minmax"):
-            self.scaler = MinMaxScaler()
 
-    def train_model(self, X_train, y_train):
-        if self.scalerMode != "-":
-            if(self.scalerMode == "log"):
-                X_train = np.log(X_train)
-            else:
-                X_train = self.scaler.fit_transform(X_train)   
-   
-        self.x_train = X_train
-        self.y_train = y_train
-
-        self.model.fit(X_train, y_train)
+    def train_model(self, x_train, y_train):
+        self.model.fit(x_train, y_train)
         self.weights = [layer_weights for layer_weights in self.model.coefs_]
-        self.r2_score = self.model.score(self.x_train, self.y_train)
+      #  self.r2_score = self.model.score(self.x_train, self.y_train)
 
-    def predict(self, X_test, normalize=True):
-        if self.scalerMode != "-" and normalize:
-            if(self.scalerMode == "log"):
-                X_test = np.log(X_test)
-            else:
-                X_test = self.scaler.transform(X_test)   
-   
-        return self.model.predict(X_test)
+    def predict(self, x_test):
+        #print(f"\n------------------ \n predicting with input {x_test}")
+        return self.model.predict(x_test)
     
 
     def forecastFutureValues(self, n, x_test):
@@ -602,9 +617,6 @@ class Vanilla_LSTM:
         
         return res
     
-class AutoARIMA:
-    def __init__(self) -> None:
-        pass
 
 def Slide(input_array, new_value):
     # Ellenőrizze, hogy a bemeneti adatszerkezet egy 2D Numpy tömb

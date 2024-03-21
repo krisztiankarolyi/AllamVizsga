@@ -85,9 +85,10 @@
                     <input class="input" type="number" value="41" min="1"  max="100" name="{{ stat.idosor_nev }}_random_state_max" id="{{ stat.idosor_nev }}_random_state_max">
 
                     <label for="{{ stat.idosor_nev }}_targetRRMSE">Cél RRMSE %-ban: <i class="info">ℹ️  <span class="tooltip">A kezdőérték keresés leáll, ha valamelyik modell előrejelzésének pontossága (RRMSE) eléri ezt a küszöböt.</span></span></label> </i></label>
-                    <input class="input" type="number" value="1" min="1"  max="100" name="{{ stat.idosor_nev }}_targetRRMSE" id="{{ stat.idosor_nev }}_targetRRMSE">
+                    <input class="input" type="number" value="1"   max="100" name="{{ stat.idosor_nev }}_targetRRMSE" id="{{ stat.idosor_nev }}_targetRRMSE">
 
                     <label for="{{ stat.idosor_nev }}_scaler">Normalizálás: 
+                        <i><input type="checkbox" name="{{ stat.idosor_nev }}_normOut" value="1"> ELvárt kimenetek normalizálása</i>
                         <i class="info">ℹ️  <span class="tooltip"><p>Az adatok normalizálása segít a modellnek könynebben felismerni a mintázatokat. </p><br>
                             <p>A standardizáció képlete: \( Z = \frac{X - \mu}{\sigma} \)</p><br>
                             <p>A Min-Max skálázás képlete: \(X_{\text{norm}} = \frac{X - X_{\text{min}}}{X_{\text{max}} - X_{\text{min}}}\)</p> <br>
