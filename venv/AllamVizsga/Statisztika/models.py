@@ -185,9 +185,12 @@ class Stat :
         scaler = None
         if (scalerMode == "robust"):
             scaler = RobustScaler()
+            scaler = RobustScaler()
         if (scalerMode == "minmax"):
            scaler = MinMaxScaler()
+           scaler = MinMaxScaler()
         if(scalerMode == "standard"):
+            scaler = StandardScaler()
             scaler = StandardScaler()
 
         if scalerMode != "-":
@@ -203,6 +206,7 @@ class Stat :
                 if(normOut):
                     self.y_test = scaler.fit_transform(self.y_test.reshape(-1, 1))
                     self.y_train = scaler.transform(self.y_train.reshape(-1, 1))
+
                     self.y_test = [item for sublist in self.y_test for item in sublist]
                     self.y_train =[item for sublist in self.y_train for item in sublist]
 
@@ -215,10 +219,13 @@ class Stat :
         self.X_Train_Y_Train_Zipped = zip(self.X_train, self.y_train)
         self.X_Test_Y_Test_Zipped = zip(self.X_test, self.y_test)
 
-        self.random_state = self.find_best_random_state(y_train=self.y_train, x_train=self.X_train, actFunction=actFunction, random_state_min=randomStateMin, random_state_max=randomStateMax, max_iters=max_iters, scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetMSE=targetMSE, y_test=self.y_test)
+        self.random_state = self.find_best_random_state(y_train=self.y_train, x_train=self.X_train, actFunction=actFunction, random_state_min=randomStateMin, 
+                                                        random_state_max=randomStateMax, max_iters=max_iters,
+                                                         scaler=scaler, hidden_layers=hidden_layers, solver=solver, targetMSE=targetMSE, y_test=self.y_test)
+        
         self.mlp_model = MLP(actFunction=actFunction, hidden_layers=hidden_layers, max_iters=max_iters, random_state=self.random_state, scaler=scaler, scalerMode=scalerMode, solver=solver)
         self.mlp_model.train_model(self.X_train, self.y_train)
-        self.futureforecasts_y, self.futureforecasts_x = self.mlp_model.forecastFutureValues(n_pred, self.X_test)
+        self.futureforecasts_y, self.futureforecasts_x = self.mlp_model.forecastFutureValues(n_pred, self.X_test, scaler=scaler, scalerMode=scalerMode, normOut=normOut)
 
         self.mlp_model.predictions = self.mlp_model.predict(self.X_test)
         # visszatranstformálás ha kell
@@ -412,24 +419,47 @@ class MLP:
       #  self.r2_score = self.model.score(self.x_train, self.y_train)
 
     def predict(self, x_test):
-        #print(f"\n------------------ \n predicting with input {x_test}")
         return self.model.predict(x_test)
     
 
-    def forecastFutureValues(self, n, x_test):
+    def forecastFutureValues(self, n, x_test, scaler=None, scalerMode="-", normOut = False):
         future_forecasts = []
-        x_axis = []
+        x_axis = []    
         input = x_test[-1].reshape(1, -1)  # Átalakítjuk a legutolsó  input értéket 2D formátumra
 
         for i in range(n):
             forecast = self.predict(input)[0]  # a predict 2d-s lisát ad vissza, 1 elemmel, mert csak 1 input van
+            print(f"foreacast before: {forecast}")
+                # ha a tanítás során nem voltak normalizálva az outputok de az inputok igen, 
+                # akkor most utólag kell normalizálni a becslést, mielőtt az inputok közé tennénk, mivel nem lenne releváns pl 0.93, 0.93, 3.97
+            if(normOut == False):
+                if(scalerMode == "log"):
+                    # elág csak a becslést logaritmizálni
+                    forecast = np.log(np.longdouble(forecast))
+
             future_forecasts.append(forecast) 
             print(f"{i+1}. : {input} ---> {forecast}")
             x_axis.append(f"{i+1}. jóslat")
+
             #csúsztatjuk egyel arréb toljuk az input elmeit, az utolsó a legutóbbi előrejelzett érték lesz
             input = np.hstack((input[:, 1:], forecast.reshape(1, -1)))
 
-        print(f"future firecast: x={x_axis}, \n y={future_forecasts}")
+            if(scaler is not None and not normOut):
+              # az eredeti input skálázó példánnyal normlaizáljuk újra az egész input mintát, és abból kiveszem az átaslakított beccslést, majd csak azt cserélem ki, hogy ne változzon az előző két érték  
+                last_value = input[-1][-1]  # Az utolsó érték kiválasztása
+                last_value_normalized = scaler.transform(np.array(input).reshape(1, -1))[0][-1]           
+                input[-1][-1] = last_value_normalized
+                print(f"transzformált input: {input}")
+
+
+        if(scalerMode == "log"):
+            #a megjelenítés előtt visszatranszformáljuk rendes alaklba a  becsléseket
+            future_forecasts = np.exp(future_forecasts).tolist()
+
+        elif(scaler is not None and normOut) :
+            future_forecasts = scaler.inverse_transform(np.array(future_forecasts).reshape(1, -1)).flatten().tolist()
+
+        print(f"\n ****future firecast: \n x={x_axis}, \n y={future_forecasts}")
         return future_forecasts, x_axis
     
 class Vanilla_LSTM:
