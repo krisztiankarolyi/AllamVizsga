@@ -469,7 +469,6 @@ class MLP:
 
             if(scaler is not None and not normOut):
               # az eredeti input skálázó példánnyal normlaizáljuk újra az egész input mintát, és abból kiveszem az átaslakított beccslést, majd csak azt cserélem ki, hogy ne változzon az előző két érték  
-                last_value = input[-1][-1]  # Az utolsó érték kiválasztása
                 last_value_normalized = scaler.transform(np.array(input).reshape(1, -1))[0][-1]           
                 input[-1][-1] = last_value_normalized
                 print(f"transzformált input: {input}")
@@ -533,13 +532,10 @@ class Vanilla_LSTM:
             self.scaler = RobustScaler()
         elif scaler == "standard":
             self.scaler = StandardScaler()
-        else:
-            if self.scaler is None and scaler != "log":
-                print(f"nem lesz normalizálás.")
-                return
+        elif self.scaler is None and scaler != "log":
+            return
 
         if self.scaler is not None:
-            print(f"A tanító- és tesztadatok {scaler} skálázással normalizálva lettek")
             self.x_train_Normalized = self.scaler.fit_transform(self.x_train.reshape(-1, self.x_train.shape[-1])).reshape(self.x_train.shape)
             self.x_test_Normalized = self.scaler.fit_transform(self.x_test.reshape(-1, self.x_test.shape[-1])).reshape(self.x_test.shape)
 
@@ -548,15 +544,12 @@ class Vanilla_LSTM:
                 self.y_test_Normalized = self.scaler.fit_transform(self.y_test.reshape(-1, 1))
 
         if scaler == "log":
-            print("A tanító- és teszt inputok logaritmizálással normalizálva lettek")
             self.x_train_Normalized = np.log(self.x_train, out=np.zeros_like(self.x_train), where=(self.x_train != 0))
             self.x_test_Normalized = np.log(self.x_test, out=np.zeros_like(self.x_test), where=(self.x_test != 0))
             
             if normalizeOutputs:
-                "A tanító és teszt kimenetek is normalizálva lesznek"
                 self.y_train_Normalized = np.log(self.y_train).reshape(-1, 1)
                 self.y_test_Normalized = np.log(self.y_test).reshape(-1, 1)
-
             
     def trainModel(self): 
         if self.scaler is not None or self.scalerStr == "log":
@@ -597,26 +590,41 @@ class Vanilla_LSTM:
 
         print(f"prediction starts with {input} \n ")
 
-        input = np.concatenate([input[:, 1:, :]])
-
         for i in range(self.n_pred):
                 forecast =  self.model.predict(input, verbose = self.verbose)[0]
                 print(f"{input} ==>  {forecast}")
                 forecasts.append(forecast)
-                #input frissitese az elorejelzett ertekkel
-                input = np.concatenate([input[:, 1:, :], forecast.reshape(1, 1, -1)], axis=1)
+                #utolsó két elem előrecsúsztatása
+                input = np.roll(input, -1, axis=1)
+                
+              
+                if(not self.normalizeOutputs):
+                    if self.scalerStr =="log":
+                         last_value_normalized = np.log(forecast)
+                         
+                    if self.scaler is not None:
+                        #a legelső input normalizálva van, viszont az előrejelzett érték nem a skálávan lesz, így át kell alakítani mielőtt beletesszük az inputba
+                        forecast_array = np.array([forecast])
+                        last_value_normalized = self.scaler.transform(forecast_array)[0][-1]   
+
+                    #input frissitese az elorejelzett ertekkel  
+                    else:
+                        last_value_normalized = forecast      
+                    input[-1][-1] = last_value_normalized
+                else:
+                    input[-1][-1] = forecast
 
         if(self.normalizeOutputs):
-            if self.scaler is not None:
+            #hogyha a kiement is egy logaritmizált érték, akkor a becsléseket vissza kell alakítani
+            if self.scalerStr =="log":
+               forecasts = np.exp(forecasts)
+
+            elif self.scaler is not None:
+            #ha a jóslatok is skálázott ér, azt vissza kell alakítani a becsléseket
                 forecasts = np.array(forecasts).reshape(-1, 1)
                 forecasts = self.scaler.inverse_transform(forecasts)
-
-            elif self.scalerStr =="log":
-                print("bevslések visszalakitva exp segítségével")
-                forecasts = np.exp(forecasts)
-
+                             
         forecasts = [item for sublist in forecasts for item in sublist]
-
         print("\n \t\t\t DONE \n", forecasts)
         return forecasts
 
@@ -670,22 +678,6 @@ class Vanilla_LSTM:
         
         return res
     
-
-def Slide(input_array, new_value):
-    # Ellenőrizze, hogy a bemeneti adatszerkezet egy 2D Numpy tömb
-    if not isinstance(input_array, np.ndarray) or input_array.ndim != 2:
-        raise ValueError("A bemeneti adatszerkezetnek egy 2D Numpy tömbnek kell lennie.")
-
-    # Másolat készítése a bemeneti adatszerkezetről
-    modified_array = np.copy(input_array)
-
-    # Az első n-1 elemet egyel előrébb csúsztatja
-    modified_array[:-1] = modified_array[1:]
-
-    # Az utolsó elem cseréje a második paraméterként kapott értékre
-    modified_array[-1] = new_value
-
-    return modified_array
 
 def MSE(becslesek, teszt_adatok,):
     try:
