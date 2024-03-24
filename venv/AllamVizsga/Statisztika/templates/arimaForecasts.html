@@ -12,17 +12,13 @@
             padding: 5px;
             display: flex;
             flex-direction: row;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: stretch;
             align-content: stretch;
         }
 
-        .tables table{
-            width: 32%;
-            height: 100%;
-        }
-        .tables tr, .tables td{width: 100%;}
+
 
         @media screen and (max-width: 600px) {
             .tables{
@@ -45,55 +41,57 @@
             
             <div class="tables">
                 {% for megye in statisztikak %}
-                    <!-- Táblázat a becslésekhez és mért adatokhoz -->
-                    <table class="table is-bordered">
-                        <thead class="has-background-info">
+                <table class="table is-bordered">
+                    <thead class="has-background-info">
+                        <tr>
+                            <td colspan="3" class="has-text-centered has-text-light"><strong>{{ megye.ARIMA.modelName }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Valódi adatok</th>
+                            <th>Becslések</th>
+                            <th>Hibák</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for becsles, mertadat, residual in megye.ARIMA.becsleseksZipped %}
                             <tr>
-                                <td colspan="3" class="has-text-centered has-text-light"><strong>{{megye.ARIMA.modelName}}</strong></td>
+                                <td>{{ mertadat | floatformat:2 }}</td>
+                                <td>{{ becsles | floatformat:2 }}</td>
+                                <td>{{ residual | floatformat:2 }}</td>
                             </tr>
-                            <tr>
-                                <th>Valódi adatok</th>
-                                <th>Becslések</th>
-                                <th>Hibák</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for becsles, mertadat, residual in megye.ARIMA.becsleseksZipped %}
-                                <tr>
-                                    <td>{{ mertadat | floatformat:2 }}</td>
-                                    <td>{{ becsles | floatformat:2 }}</td>
-                                    <td>{{ residual | floatformat:2 }}</td>
-                                </tr>
-                            {% endfor %}
-                                <tr>
-                                    <td colspan="3">
-                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.diagram }}">
-                                            <img src="data:image/png;base64,{{ megye.ARIMA.diagram }}">
-                                        </a>
-                                    </td>                                    
-                                </tr>
-                                <tr>
-                                    <td colspan="3">
-                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
-                                            <img src="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
-                                        </a>
-                                    </td>                                    
-                                </tr>
-                                <tr>
-                                    <td colspan="3">
-                                        <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
-                                            <img src="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
-                                        </a>
-                                    </td>                                    
-                                </tr>
-                              
-                                <tr>
-                                    <td  colspan="3"> {{ megye.ARIMA.white  | safe }} </td>
-                                </tr
-                             
-                        </tbody>
-                    </table>
-                {% endfor %} 
+                        {% endfor %}
+                        <tr>
+                            <td colspan="3">
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.diagram }}">
+                                    <img src="data:image/png;base64,{{ megye.ARIMA.diagram }}">
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
+                                    <img src="data:image/png;base64,{{ megye.ARIMA.errorHistogram }}">
+                                </a>
+                            </td>
+                            <td>
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
+                                    <img src="data:image/png;base64,{{ megye.ARIMA.residualsPlot }}">
+                                </a>
+                            </td>
+                            <td>
+                                <a target="_blank" href="data:image/png;base64,{{ megye.ARIMA.resACFPlot }}">
+                                    <img src="data:image/png;base64,{{ megye.ARIMA.resACFPlot }}">
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">{{ megye.ARIMA.white | safe }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endfor %}
+            
+
             </div>  <br>
 
                <!-- Táblázat az ARIMA mutatókhoz -->

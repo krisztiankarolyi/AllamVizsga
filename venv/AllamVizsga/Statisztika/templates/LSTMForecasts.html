@@ -11,13 +11,13 @@
         .tables{
             display: flex;
             flex-direction: row;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: stretch;
         }
 
         .tables table{
-            width: 30%;
+            width: 100%;
             height: 100%;
         }
 
@@ -72,40 +72,49 @@
                 <table class="table is-bordered" >
                     <thead class="has-background-info">
                         <tr>
-                            <td colspan="2" class="has-text-centered has-text-light"><strong>{{megye.idosor_nev}} LSTM</strong> </td>
+                            <td colspan="3" class="has-text-centered has-text-light"><strong>{{megye.idosor_nev}} LSTM</strong> </td>
                         </tr>
                         <tr>
-                            <th>Előrejelzés</th>
                             <th>Valódi adat</th>
+                            <th>Előrejelzés</th>
+                            <th>Hiba</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for prediction, realValue in megye.lstm.forecastZipped %}
+                        {% for prediction, realValue, error in megye.lstmResultsZipped %}
                         <tr>
-                            <td>{{ prediction | floatformat:2 }}</td>
                             <td>{{ realValue | floatformat:2  }}</td>
+                            <td>{{ prediction | floatformat:2 }}</td>
+                            <td>{{ error | floatformat:2  }}</td>
                         </tr>
                         {% endfor %}
                         <tr>
-                            <td colspan="2">
+                            <td colspan="3">
                                 <a target="_blank" href="data:image/png;base64,{{ megye.lstm.diagram }}">
                                 <img src="data:image/png;base64,{{megye.lstm.diagram}}" style="width: 100%;" > 
                                 </a>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="2">
+                            <td >
                                 <a target="_blank" href="data:image/png;base64,{{ megye.lstm.errorHistogram }}">
                                     <img src="data:image/png;base64,{{ megye.lstm.errorHistogram }}">
                                 </a>
                             </td>                                    
-                        </tr>
-                        <tr>
-                            <td colspan="2">
+       
+                            <td>
                                 <a target="_blank" href="data:image/png;base64,{{ megye.lstm.residualsPlot }}">
                                     <img src="data:image/png;base64,{{ megye.lstm.residualsPlot }}">
                                 </a>
+                            </td>          
+                            <td>
+                                <a target="_blank" href="data:image/png;base64,{{ megye.lstm.resACFPlot }}">
+                                    <img src="data:image/png;base64,{{ megye.lstm.resACFPlot }}">
+                                </a>
                             </td>                                    
+                        </tr>
+                        <tr>
+                            <td colspan="3">{{ megye.lstm.white | safe }}</td>
                         </tr>
                 </tbody>
                     </tbody>

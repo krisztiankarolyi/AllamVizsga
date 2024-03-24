@@ -154,7 +154,7 @@ def LSTMResults(request):
             adatsorok.append(y)
 
                        
-        diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", 3, 6, 0.5, True)
+        diagaramEgyben = AbrazolEgyben(adatsorok, x_axis, adatsorNevek, 1, "Székelyföld előrejelzett munkanélküliségi rátái", "", grid=True)
         diagaramEgyben = base64.b64encode(diagaramEgyben.read()).decode('utf-8')
 
         return render(request, 'LSTMForecasts.html', {'statisztikak': statisztikak, 'diagramEgyben': diagaramEgyben})
@@ -216,6 +216,10 @@ def AbrazolEgyben(adatsorok, idoszakok, megnevezesek, suruseg, Cim="", yFelirat=
     try:
         if( len(idoszakok) > len(adatsorok[0]) ):
             idoszakok = idoszakok[0:len(adatsorok[0])]
+        
+        if(len(idoszakok) < len(adatsorok[0])):
+            for i in range(len(adatsorok[0]) - len(idoszakok)):
+                idoszakok.append(str(i+1)+". előrejelzés")
         
         plt.figure(num = num, figsize=(15, 7))
         for i, megye in enumerate(megnevezesek): 

@@ -122,6 +122,7 @@ class Stat :
             self.ARIMA.errorHistogram = plot_error_analysis(residuals=self.ARIMA.residuals, name=self.idosor_nev+" "+self.ARIMA.modelName)
             self.ARIMA.residualsPlot = plot_Residuals(residuals=self.ARIMA.residuals, name=self.idosor_nev+" "+self.ARIMA.modelName)
             self.ARIMA.white = White(self.ARIMA.residuals)
+            self.ARIMA.resACFPlot = self.acfPlot(self.ARIMA.residuals)
             self.ARIMA.becsleseksZipped  = zip(self.ARIMA.becslesek, self.teszt_adatok, self.ARIMA.residuals)
             
         except Exception as exp:
@@ -130,21 +131,42 @@ class Stat :
 
         return self.ARIMA
         
-    def plot_acf_and_pacf(self):
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=False)
+    def plot_acf_and_pacf(self, x: list = [], pacf: bool = True):
+        if len(x) == 0:
+            x = self.adatok
+        fig, (ax1, ax2) = plt.subplots(2 if pacf else 1, 1, figsize=(6, 6), sharex=False)
         fig.subplots_adjust(hspace=0.3)
-        max_lags = len(self.adatok) // 2
-        lags = min(max_lags, 20)  # Set maximum lags to 40 or half the sample size, whichever is smaller
-        plot_acf(self.adatok, lags=lags, ax=ax1, title=f"Autokorreláció ({self.idosor_nev})")
-        plot_pacf(self.adatok, lags=lags, ax=ax2, title=f"Parciális Autokorreláció ({self.idosor_nev})")
+        
+        max_lags = len(x) // 2 if len(x) > 12 else len(x)
+        lags = min(max_lags, 20)  # Set maximum lags to 20 or half the sample size, whichever is smaller
+        
+        plot_acf(x, lags=lags, ax=ax1, title=f"Autokorreláció ({self.idosor_nev})")
+        
+        if pacf:
+            plot_pacf(x, lags=lags, ax=ax2, title=f"Parciális Autokorreláció ({self.idosor_nev})")
+
         buffer = io.BytesIO()
         plt.savefig(buffer, format="png")
         buffer.seek(0)
         plt.close()
         encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
         self.pacf_acf_Diagram = encoded_image
-
-
+        return encoded_image
+    
+    def acfPlot(self, x: list = []):
+        x = np.array(x)
+        print(f"resiudals to be plotted:  {x}")
+        lags = len(x) // 2 if len(x) > 12 else len(x)-1
+        fig, ax = plt.subplots(figsize=(6, 6))
+        plot_acf(x, lags=lags, ax=ax)
+        ax.set_title("Reziduumok autokorrelációi")
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format="png")
+        buffer.seek(0)
+        plt.close()
+        encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return encoded_image
+    
     def distributionPlot(self):
         bins = int(max(self.adatok) - min(self.adatok))
         n, bins, _ = plt.hist(self.adatok, bins=bins, color='blue', edgecolor='black')
@@ -247,6 +269,7 @@ class Stat :
         self.mlp_model.white = White(self.mlp_model.residuals)
         self.mlp_model.residualsPlot = plot_Residuals(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
         self.mlp_model.errorHistogram = plot_error_analysis(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
+        self.mlp_model.resACFPlot = self.acfPlot(self.mlp_model.residuals)
         self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok, self.mlp_model.residuals)
          
    
@@ -262,12 +285,12 @@ class Stat :
         self.lstm = Vanilla_LSTM(learning_data=learning_data, test_data=test_data, activation = activation,  solver = solver, units=units, n_steps = n_steps,
         n_features=n_features, loss = loss, scaler=scaler, epochs=epochs, input_dim=input_dim, verbose=verbose, n_pred=n_pred, name = self.idosor_nev, normOut = normOut)
         self.lstm.errorHistogram = plot_error_analysis(self.teszt_adatok, self.lstm.predictions)
-        self.residuals = np.array([self.teszt_adatok[i] - self.lstm.predictions[i] for i in range(len(self.teszt_adatok))])
-        self.lstm.residualsPlot = plot_Residuals(self.residuals)
-        self.lstm.white = White(self.residuals)
+        self.lstm.residuals = np.array([self.teszt_adatok[i] - self.lstm.predictions[i] for i in range(len(self.teszt_adatok))])
+        self.lstm.residualsPlot = plot_Residuals(self.lstm.residuals)
+        self.lstm.white = White(self.lstm.residuals)
+        self.lstm.resACFPlot = self.acfPlot(self.lstm.residuals)
+        self.lstmResultsZipped = zip(self.lstm.predictions, self.teszt_adatok, self.lstm.residuals)
 
-        #r2 a a joslatokra (kevesbe relevans)
-        self.lstm.r2 = r2_score(self.teszt_adatok, self.lstm.predictions)
 
     def get_month_number(self, month):
         months = {
