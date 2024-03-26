@@ -92,6 +92,7 @@ def BoxJenkins(request):
     global statisztikak
     for megye in statisztikak:
         megye.plot_acf_and_pacf()
+    #    megye.AutoARIMA(megye.adatok)
         
     return render(request, 'Box-Jenkins.html', {'statisztikak': statisztikak})
 

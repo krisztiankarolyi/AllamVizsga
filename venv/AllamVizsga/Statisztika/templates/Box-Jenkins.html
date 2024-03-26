@@ -100,6 +100,13 @@
         </div>
     </section><hr>
 
+    {% for idosor in statisztikak %}
+    <div id="acfpacf" class="has-text-centered">
+        <p>{{idosor.suggestedARIMA}}</p>
+    </div>
+{% endfor %}
+
+
     <section id="arima" style="max-width: 800px; margin: auto; width: 90%;">
         <h1 class="title has-text-centered has-text-light">
             ARIMA modellek beállítása teszteléshez és előrejelzéshez

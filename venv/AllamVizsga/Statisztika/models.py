@@ -270,9 +270,8 @@ class Stat :
         self.mlp_model.residualsPlot = plot_Residuals(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
         self.mlp_model.errorHistogram = plot_error_analysis(residuals=self.mlp_model.residuals, name=self.mlp_model.modelStr)
         self.mlp_model.resACFPlot = self.acfPlot(self.mlp_model.residuals)
-        self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok, self.mlp_model.residuals)
-         
-   
+        self.MLPResultsZipped = zip(self.mlp_model.predictions, self.teszt_adatok, self.mlp_model.residuals)     
+  
     def predict_with_lstm(self, mode="vanilla", activation: str = "relu",  solver: str = "adam", 
                           scaler:str = "", units: int = 64, n_steps: int = 1, 
                           input_dim: int = 100, loss: str ="mse", n_features: int = 1, 
@@ -290,7 +289,6 @@ class Stat :
         self.lstm.white = White(self.lstm.residuals)
         self.lstm.resACFPlot = self.acfPlot(self.lstm.residuals)
         self.lstmResultsZipped = zip(self.lstm.predictions, self.teszt_adatok, self.lstm.residuals)
-
 
     def get_month_number(self, month):
         months = {
@@ -333,6 +331,27 @@ class Stat :
         self.random_state = best_random_state
         return best_random_state
   
+    def AutoARIMA(self, data: list=[], seasonal: bool = False):
+        print("------------AUTO ARIMA")
+        if data == []:
+            data = self.adatok
+
+        from pmdarima import auto_arima
+        import pandas as pd
+
+        # Assuming 'data' is your time series data
+        # Example: data = pd.read_csv('your_data.csv', index_col='date_column', parse_dates=True)
+        # Adjust the parameters and seasonal parameters as needed
+        model = auto_arima(y = data, start_p=0, start_q=0,
+                        max_p=5, max_q=5, 
+                        seasonal=seasonal,
+                        d=1,  trace=True,
+                        error_action='ignore',  
+                        stationary=False,
+                        suppress_warnings=True, 
+                        stepwise=False)
+        print(model.summary())
+
 
 def split_sequence(sequence, n_steps):
         X, y = list(), list()
